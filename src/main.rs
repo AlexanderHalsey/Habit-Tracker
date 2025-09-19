@@ -1,29 +1,24 @@
-use crate::api::connect_db::connect_db;
 use config::{Config, ConfigError};
+use std::error::Error;
+
+use crate::api::HabitTrackerService;
 
 pub mod api;
 
-fn main() {
-    let settings = get_settings().expect("Error getting settings");
-    let db_connection = connect_db(settings);
-    println!("Hello, world! {db_connection:#?}");
+fn main() -> Result<(), Box<dyn Error>> {
+    let habit_tracker_service = HabitTrackerService::build()?;
+    Ok(())
 }
 
-pub struct Settings {
+pub struct Environment {
     db_path: String,
 }
 
-fn get_settings() -> Result<Settings, ConfigError> {
+fn get_environment() -> Result<Environment, ConfigError> {
     let env = std::env::var("APP_ENV").unwrap_or("dev".into());
-    let settings = Config::builder()
+    let db_path = Config::builder()
         .add_source(config::File::with_name("config"))
         .build()?
-        .get_table(&env)?;
-    if let Some(v) = settings.get("db_path") {
-        Ok(Settings {
-            db_path: v.to_string(),
-        })
-    } else {
-        Err(ConfigError::Message("Incorrect Settings".to_string()))
-    }
+        .get_string(&format!("{env}.db_path"))?;
+    Ok(Environment { db_path })
 }
