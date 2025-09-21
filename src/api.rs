@@ -1,11 +1,10 @@
+use crate::AppConfig;
 use chrono::{DateTime, Utc};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{Connection, Result, Row, params};
 use std::error::Error;
 
-use crate::get_environment;
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HabitType {
     Daily,
     AppleCalendar,
@@ -32,12 +31,12 @@ impl ToSql for HabitType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Habit {
-    id: i64,
-    habit_type: HabitType,
-    label: String,
-    question_label: String,
+    pub id: i64,
+    pub habit_type: HabitType,
+    pub label: String,
+    pub question_label: String,
 }
 
 impl Habit {
@@ -51,12 +50,12 @@ impl Habit {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct HabitEntry {
-    id: i64,
-    habit_id: String,
-    completed: bool,
-    date: DateTime<Utc>,
+    pub id: i64,
+    pub habit_id: i64,
+    pub completed: bool,
+    pub date: DateTime<Utc>,
 }
 
 impl HabitEntry {
@@ -72,28 +71,28 @@ impl HabitEntry {
 
 #[derive(Debug)]
 pub struct CreateHabitRequest {
-    habit_type: HabitType,
-    label: String,
-    question_label: String,
+    pub habit_type: HabitType,
+    pub label: String,
+    pub question_label: String,
 }
 
 #[derive(Debug)]
 pub struct UpdateHabitRequest {
-    habit_id: String,
-    habit_type: HabitType,
-    label: String,
-    question_label: String,
+    pub habit_id: i64,
+    pub habit_type: HabitType,
+    pub label: String,
+    pub question_label: String,
 }
 
 #[derive(Debug)]
-pub struct UpsertHabitEntryItem {
-    habit_id: String,
-    completed: bool,
+pub struct InsertHabitEntryItem {
+    pub habit_id: i64,
+    pub completed: bool,
 }
 
 #[derive(Debug)]
-pub struct UpsertHabitEntriesRequest {
-    data: Vec<UpsertHabitEntryItem>,
+pub struct InsertHabitEntriesRequest {
+    pub data: Vec<InsertHabitEntryItem>,
 }
 
 #[derive(Debug)]
@@ -102,15 +101,14 @@ pub struct HabitTrackerService {
 }
 
 impl HabitTrackerService {
-    pub fn build() -> Result<HabitTrackerService, Box<dyn Error>> {
-        let environment = get_environment()?;
-        let mut db_connection = Connection::open(environment.db_path)?;
+    pub fn build(app_config: AppConfig) -> Result<HabitTrackerService, Box<dyn Error>> {
+        let mut db_connection = Connection::open(app_config.db_path)?;
 
         let transaction = db_connection.transaction()?;
         transaction.execute(
             "CREATE TABLE IF NOT EXISTS habit (
             id INTEGER PRIMARY KEY,
-            habitType TEXT CHECK( type IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
+            habitType TEXT CHECK(habitType IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
             label TEXT NOT NULL,
             questionLabel TEXT NOT NULL
         )",
@@ -162,12 +160,12 @@ impl HabitTrackerService {
         )
     }
 
-    pub fn insert_habit_entries(&mut self, request: UpsertHabitEntriesRequest) -> Result<()> {
+    pub fn insert_habit_entries(&mut self, request: InsertHabitEntriesRequest) -> Result<()> {
         let transaction = self.db_connection.transaction()?;
         {
-            let mut statement =
-                transaction.prepare("INSERT INTO habitEntry (completed, habitId) VALUES (?, ?)")?;
-            for UpsertHabitEntryItem {
+            let mut statement = transaction
+                .prepare("INSERT INTO habitEntry (completed, habitId) VALUES (?1, ?2)")?;
+            for InsertHabitEntryItem {
                 completed,
                 habit_id,
             } in request.data
@@ -176,5 +174,122 @@ impl HabitTrackerService {
             }
         }
         transaction.commit()
+    }
+}
+
+#[cfg(test)]
+pub mod unit_tests {
+    use chrono::Utc;
+    use rusqlite::types::{FromSql, FromSqlError, ToSqlOutput};
+    use rusqlite::{Connection, Result, ToSql, params};
+
+    use crate::api::{Habit, HabitEntry, HabitType};
+
+    #[test]
+    fn test_habit_types() -> Result<()> {
+        // column_result method
+        assert_eq!(HabitType::column_result("daily".into())?, HabitType::Daily);
+        assert_eq!(
+            HabitType::column_result("appleCalendar".into())?,
+            HabitType::AppleCalendar
+        );
+        assert_eq!(
+            HabitType::column_result("incorrect_type".into()).unwrap_err(),
+            FromSqlError::InvalidType,
+        );
+        // to_sql method
+        assert_eq!(HabitType::Daily.to_sql()?, ToSqlOutput::from("daily"));
+        assert_eq!(
+            HabitType::AppleCalendar.to_sql()?,
+            ToSqlOutput::from("appleCalendar"),
+        );
+        Ok(())
+    }
+
+    pub fn in_memory_connection() -> Result<Connection> {
+        let mut db_connection = Connection::open_in_memory()?;
+        let transaction = db_connection.transaction()?;
+        transaction.execute(
+            "CREATE TABLE habit (
+            id INTEGER PRIMARY KEY,
+            habitType TEXT CHECK(habitType IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
+            label TEXT NOT NULL,
+            questionLabel TEXT NOT NULL
+        )",
+            (),
+        )?;
+        transaction.execute(
+            "CREATE TABLE habitEntry (
+            id INTEGER PRIMARY KEY,
+            completed BOOLEAN NOT NULL CHECK(completed IN (0, 1)),
+            date REAL NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            habitId INTEGER,
+            FOREIGN KEY(habitId) REFERENCES habit(id)
+        )",
+            (),
+        )?;
+        transaction.commit()?;
+        Ok(db_connection)
+    }
+
+    fn create_habit(db_connection: &Connection) -> Result<Habit> {
+        let fixture = Habit {
+            id: 1,
+            habit_type: HabitType::AppleCalendar,
+            label: "some label".into(),
+            question_label: "some question label".into(),
+        };
+        db_connection.execute(
+            "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
+            params![fixture.habit_type, fixture.label, fixture.question_label,],
+        )?;
+        Ok(fixture)
+    }
+
+    #[test]
+    fn test_habit_from_row() -> Result<()> {
+        let db_connection = in_memory_connection()?;
+        let fixture = create_habit(&db_connection)?;
+        db_connection.execute(
+            "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
+            params![fixture.habit_type, fixture.label, fixture.question_label,],
+        )?;
+
+        let mut statement = db_connection.prepare("SELECT * FROM habit")?;
+        let queried_habit = statement.query_map([], Habit::from_row)?.next().unwrap()?;
+
+        assert_eq!(queried_habit, fixture);
+        Ok(())
+    }
+
+    #[test]
+    fn test_habit_entry_from_row() -> Result<()> {
+        let habit_entry_fixture = HabitEntry {
+            id: 1,
+            habit_id: 1,
+            completed: true,
+            date: Utc::now(),
+        };
+
+        let db_connection = in_memory_connection()?;
+        // create habit to ensure a habit_id for entry
+        create_habit(&db_connection)?;
+        db_connection.execute(
+            "INSERT INTO habitEntry (habitId, completed, date) VALUES (?1, ?2, ?3)",
+            params![
+                habit_entry_fixture.habit_id,
+                habit_entry_fixture.completed,
+                habit_entry_fixture.date,
+            ],
+        )?;
+
+        let mut statement = db_connection.prepare("SELECT * FROM habitEntry")?;
+        let queried_habit_entry = statement
+            .query_map([], HabitEntry::from_row)?
+            .next()
+            .unwrap()?;
+
+        assert_eq!(queried_habit_entry, habit_entry_fixture);
+        Ok(())
     }
 }
