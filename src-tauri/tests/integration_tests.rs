@@ -1,7 +1,7 @@
 use chrono::Utc;
-use habit_tracker::{
-    CreateHabitRequest, Habit, HabitTrackerService, HabitType, InsertHabitEntriesRequest,
-    InsertHabitEntryItem, UpdateHabitRequest, app_config::get_app_config,
+use habit_tracker_lib::{
+    app_config::get_app_config, CreateHabitRequest, Habit, HabitTrackerService, HabitType,
+    InsertHabitEntriesRequest, InsertHabitEntryItem, UpdateHabitRequest,
 };
 use rusqlite::Result;
 use std::error::Error;
