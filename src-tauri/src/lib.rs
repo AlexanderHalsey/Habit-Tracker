@@ -68,7 +68,7 @@ fn insert_habit_entries(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn Error>> {
     export::ts_with_cfg(
-        "../src/types.ts",
+        "../src/api/dtos.ts",
         &ExportConfiguration::default().bigint(BigIntExportBehavior::Number),
     )
     .unwrap();
