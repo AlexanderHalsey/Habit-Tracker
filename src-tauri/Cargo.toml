@@ -16,6 +16,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+specta = { version = "1.0.5", features = ["export"] }
 
 [dependencies]
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -23,5 +24,6 @@ config = "0.15.16"
 rusqlite = { version = "0.37.0", features = ["chrono"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+specta = { version = "1.0.5", features = ["chrono", "export"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"

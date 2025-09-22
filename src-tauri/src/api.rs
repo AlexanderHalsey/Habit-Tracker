@@ -6,8 +6,9 @@ use chrono::{DateTime, Utc};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{params, Connection, Result, Row};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Type)]
 pub enum HabitType {
     Daily,
     AppleCalendar,
@@ -34,7 +35,7 @@ impl ToSql for HabitType {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Type)]
 pub struct Habit {
     pub id: i64,
     pub habit_type: HabitType,
@@ -53,7 +54,7 @@ impl Habit {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Type)]
 pub struct HabitEntry {
     pub id: i64,
     pub habit_id: i64,

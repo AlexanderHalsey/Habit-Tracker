@@ -2,15 +2,18 @@ pub mod api;
 pub mod app_config;
 pub mod requests;
 
+use crate::api::HabitEntry;
 pub use api::{Habit, HabitTrackerService, HabitType};
 pub use app_config::{get_app_config, AppConfig};
 pub use requests::{
     CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem, UpdateHabitRequest,
 };
+use specta::{
+    export,
+    ts::{BigIntExportBehavior, ExportConfiguration},
+};
 use std::{error::Error, sync::Mutex};
 use tauri::State;
-
-use crate::api::HabitEntry;
 
 #[tauri::command]
 fn get_habits(state: State<Mutex<HabitTrackerService>>) -> Result<Vec<Habit>, String> {
@@ -64,6 +67,12 @@ fn insert_habit_entries(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn Error>> {
+    export::ts_with_cfg(
+        "../src/types.ts",
+        &ExportConfiguration::default().bigint(BigIntExportBehavior::Number),
+    )
+    .unwrap();
+
     let env = std::env::var("APP_ENV").unwrap_or("dev".into());
     let app_config = get_app_config(&env)?;
     let habit_tracker_service = HabitTrackerService::build(app_config)?;
