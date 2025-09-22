@@ -1,10 +1,13 @@
-use crate::AppConfig;
+use crate::{
+    AppConfig, CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem,
+    UpdateHabitRequest,
+};
 use chrono::{DateTime, Utc};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-use rusqlite::{Connection, Result, Row, params};
-use std::error::Error;
+use rusqlite::{params, Connection, Result, Row};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub enum HabitType {
     Daily,
     AppleCalendar,
@@ -31,7 +34,7 @@ impl ToSql for HabitType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Habit {
     pub id: i64,
     pub habit_type: HabitType,
@@ -50,7 +53,7 @@ impl Habit {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct HabitEntry {
     pub id: i64,
     pub habit_id: i64,
@@ -70,41 +73,15 @@ impl HabitEntry {
 }
 
 #[derive(Debug)]
-pub struct CreateHabitRequest {
-    pub habit_type: HabitType,
-    pub label: String,
-    pub question_label: String,
-}
-
-#[derive(Debug)]
-pub struct UpdateHabitRequest {
-    pub habit_id: i64,
-    pub habit_type: HabitType,
-    pub label: String,
-    pub question_label: String,
-}
-
-#[derive(Debug)]
-pub struct InsertHabitEntryItem {
-    pub habit_id: i64,
-    pub completed: bool,
-}
-
-#[derive(Debug)]
-pub struct InsertHabitEntriesRequest {
-    pub data: Vec<InsertHabitEntryItem>,
-}
-
-#[derive(Debug)]
 pub struct HabitTrackerService {
-    db_connection: Connection,
+    conn: Connection,
 }
 
 impl HabitTrackerService {
-    pub fn build(app_config: AppConfig) -> Result<HabitTrackerService, Box<dyn Error>> {
-        let mut db_connection = Connection::open(app_config.db_path)?;
+    pub fn build(app_config: AppConfig) -> Result<HabitTrackerService> {
+        let mut conn = Connection::open(app_config.db_path)?;
 
-        let transaction = db_connection.transaction()?;
+        let transaction = conn.transaction()?;
         transaction.execute(
             "CREATE TABLE IF NOT EXISTS habit (
             id INTEGER PRIMARY KEY,
@@ -126,30 +103,30 @@ impl HabitTrackerService {
         )?;
         transaction.commit()?;
 
-        Ok(HabitTrackerService { db_connection })
+        Ok(HabitTrackerService { conn })
     }
 
     pub fn create_habit(&self, request: CreateHabitRequest) -> Result<usize> {
-        self.db_connection.execute(
+        self.conn.execute(
             "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
             params![request.habit_type, request.label, request.question_label],
         )
     }
 
     pub fn get_habit_entries(&self) -> Result<Vec<HabitEntry>> {
-        let mut statement = self.db_connection.prepare("SELECT * FROM habitEntry")?;
+        let mut statement = self.conn.prepare("SELECT * FROM habitEntry")?;
         let habit_entry_iter = statement.query_map([], HabitEntry::from_row)?;
         habit_entry_iter.collect::<Result<Vec<_>>>()
     }
 
     pub fn get_habits(&self) -> Result<Vec<Habit>> {
-        let mut statement = self.db_connection.prepare("SELECT * FROM habit")?;
+        let mut statement = self.conn.prepare("SELECT * FROM habit")?;
         let habit_iter = statement.query_map([], Habit::from_row)?;
         habit_iter.collect::<Result<Vec<_>>>()
     }
 
     pub fn update_habit(&self, request: UpdateHabitRequest) -> Result<usize> {
-        self.db_connection.execute(
+        self.conn.execute(
             "UPDATE habit SET habitType = ?1, label = ?2, questionLabel = ?3 WHERE id = ?4",
             params![
                 request.habit_type,
@@ -161,7 +138,7 @@ impl HabitTrackerService {
     }
 
     pub fn insert_habit_entries(&mut self, request: InsertHabitEntriesRequest) -> Result<()> {
-        let transaction = self.db_connection.transaction()?;
+        let transaction = self.conn.transaction()?;
         {
             let mut statement = transaction
                 .prepare("INSERT INTO habitEntry (completed, habitId) VALUES (?1, ?2)")?;
@@ -179,11 +156,12 @@ impl HabitTrackerService {
 
 #[cfg(test)]
 pub mod unit_tests {
+    use crate::api::{Habit, HabitEntry, HabitTrackerService, HabitType};
+    use crate::get_app_config;
     use chrono::Utc;
     use rusqlite::types::{FromSql, FromSqlError, ToSqlOutput};
-    use rusqlite::{Connection, Result, ToSql, params};
-
-    use crate::api::{Habit, HabitEntry, HabitType};
+    use rusqlite::{params, Connection, Result, ToSql};
+    use std::error::Error;
 
     #[test]
     fn test_habit_types() -> Result<()> {
@@ -206,32 +184,6 @@ pub mod unit_tests {
         Ok(())
     }
 
-    pub fn in_memory_connection() -> Result<Connection> {
-        let mut db_connection = Connection::open_in_memory()?;
-        let transaction = db_connection.transaction()?;
-        transaction.execute(
-            "CREATE TABLE habit (
-            id INTEGER PRIMARY KEY,
-            habitType TEXT CHECK(habitType IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
-            label TEXT NOT NULL,
-            questionLabel TEXT NOT NULL
-        )",
-            (),
-        )?;
-        transaction.execute(
-            "CREATE TABLE habitEntry (
-            id INTEGER PRIMARY KEY,
-            completed BOOLEAN NOT NULL CHECK(completed IN (0, 1)),
-            date REAL NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            habitId INTEGER,
-            FOREIGN KEY(habitId) REFERENCES habit(id)
-        )",
-            (),
-        )?;
-        transaction.commit()?;
-        Ok(db_connection)
-    }
-
     fn create_habit(db_connection: &Connection) -> Result<Habit> {
         let fixture = Habit {
             id: 1,
@@ -247,8 +199,9 @@ pub mod unit_tests {
     }
 
     #[test]
-    fn test_habit_from_row() -> Result<()> {
-        let db_connection = in_memory_connection()?;
+    fn test_habit_from_row() -> Result<(), Box<dyn Error>> {
+        let app_config = get_app_config("test")?;
+        let db_connection = HabitTrackerService::build(app_config)?.conn;
         let fixture = create_habit(&db_connection)?;
         db_connection.execute(
             "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
@@ -263,15 +216,15 @@ pub mod unit_tests {
     }
 
     #[test]
-    fn test_habit_entry_from_row() -> Result<()> {
+    fn test_habit_entry_from_row() -> Result<(), Box<dyn Error>> {
         let habit_entry_fixture = HabitEntry {
             id: 1,
             habit_id: 1,
             completed: true,
             date: Utc::now(),
         };
-
-        let db_connection = in_memory_connection()?;
+        let app_config = get_app_config("test")?;
+        let db_connection = HabitTrackerService::build(app_config)?.conn;
         // create habit to ensure a habit_id for entry
         create_habit(&db_connection)?;
         db_connection.execute(

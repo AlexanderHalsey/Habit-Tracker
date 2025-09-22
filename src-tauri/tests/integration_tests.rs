@@ -8,7 +8,7 @@ use std::error::Error;
 
 fn mock_habit_tracker_service() -> Result<HabitTrackerService, Box<dyn Error>> {
     let app_config = get_app_config("test")?;
-    HabitTrackerService::build(app_config)
+    Ok(HabitTrackerService::build(app_config)?)
 }
 
 #[test]
