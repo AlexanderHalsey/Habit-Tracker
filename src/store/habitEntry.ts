@@ -1,5 +1,9 @@
 import { create } from "zustand"
+
 import { getHabitEntries, postHabitEntries } from "../api/habitTracker"
+
+import { TrackHabitFormData } from "../forms"
+
 import { HabitEntry } from "../models"
 
 interface State {
@@ -8,7 +12,7 @@ interface State {
 
 interface Action {
   fetchHabitEntries: () => Promise<void>
-  insertHabitEntries: (newEntries: HabitEntry[]) => Promise<void>
+  insertHabitEntries: (newEntries: TrackHabitFormData) => Promise<void>
 }
 
 export const useHabitEntryStore = create<State & Action>((set) => ({

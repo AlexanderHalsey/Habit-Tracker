@@ -1,3 +1,8 @@
+import {
+  CreateHabitFormData,
+  TrackHabitFormData,
+  UpdateHabitFormData,
+} from "../forms"
 import { Habit, HabitEntry } from "../models"
 import {
   CreateHabitRequest,
@@ -8,28 +13,28 @@ import {
 } from "./dtos"
 
 export const convertFormDataToCreateHabitRequest = (
-  habit: Habit
+  formData: CreateHabitFormData
 ): CreateHabitRequest => {
   return {
-    habit_type: habit.habitType,
-    label: habit.label,
-    question_label: habit.questionLabel,
+    habit_type: formData.habitType,
+    title: formData.title,
+    question: formData.question,
   }
 }
 
 export const convertFormDataToUpdateHabitRequest = (
-  habit: Habit
+  formData: UpdateHabitFormData
 ): UpdateHabitRequest => {
   return {
-    habit_id: habit.id,
-    habit_type: habit.habitType,
-    label: habit.label,
-    question_label: habit.questionLabel,
+    id: formData.id,
+    habit_type: formData.habitType,
+    title: formData.title,
+    question: formData.question,
   }
 }
 
 export const convertFormDataToInsertHabitEntriesRequest = (
-  habitEntries: HabitEntry[]
+  habitEntries: TrackHabitFormData
 ): InsertHabitEntriesRequest => {
   return {
     data: habitEntries.map((entry) => ({
@@ -43,8 +48,8 @@ export const convertDtoToHabit = (dto: HabitDto): Habit => {
   return {
     id: dto.id,
     habitType: dto.habit_type,
-    label: dto.label,
-    questionLabel: dto.question_label,
+    title: dto.title,
+    question: dto.question,
   }
 }
 

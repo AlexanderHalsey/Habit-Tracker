@@ -39,8 +39,8 @@ impl ToSql for HabitType {
 pub struct Habit {
     pub id: i64,
     pub habit_type: HabitType,
-    pub label: String,
-    pub question_label: String,
+    pub title: String,
+    pub question: String,
 }
 
 impl Habit {
@@ -48,8 +48,8 @@ impl Habit {
         Ok(Habit {
             id: row.get("id")?,
             habit_type: row.get("habitType")?,
-            label: row.get("label")?,
-            question_label: row.get("questionLabel")?,
+            title: row.get("title")?,
+            question: row.get("question")?,
         })
     }
 }
@@ -87,8 +87,8 @@ impl HabitTrackerService {
             "CREATE TABLE IF NOT EXISTS habit (
             id INTEGER PRIMARY KEY,
             habitType TEXT CHECK(habitType IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
-            label TEXT NOT NULL,
-            questionLabel TEXT NOT NULL
+            title TEXT NOT NULL,
+            question TEXT NOT NULL
         )",
             (),
         )?;
@@ -107,10 +107,16 @@ impl HabitTrackerService {
         Ok(HabitTrackerService { conn })
     }
 
-    pub fn create_habit(&self, request: CreateHabitRequest) -> Result<usize> {
+    pub fn create_habit(&self, request: CreateHabitRequest) -> Result<Habit> {
         self.conn.execute(
-            "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
-            params![request.habit_type, request.label, request.question_label],
+            "INSERT INTO habit (habitType, title, question) VALUES (?1, ?2, ?3)",
+            params![request.habit_type, request.title, request.question],
+        )?;
+        let id = self.conn.last_insert_rowid();
+        self.conn.query_row(
+            "SELECT * FROM habit WHERE id = ?1",
+            params![id],
+            Habit::from_row,
         )
     }
 
@@ -126,19 +132,28 @@ impl HabitTrackerService {
         habit_iter.collect::<Result<Vec<_>>>()
     }
 
-    pub fn update_habit(&self, request: UpdateHabitRequest) -> Result<usize> {
+    pub fn update_habit(&self, request: UpdateHabitRequest) -> Result<Habit> {
         self.conn.execute(
-            "UPDATE habit SET habitType = ?1, label = ?2, questionLabel = ?3 WHERE id = ?4",
+            "UPDATE habit SET habitType = ?1, title = ?2, question = ?3 WHERE id = ?4",
             params![
                 request.habit_type,
-                request.label,
-                request.question_label,
-                request.habit_id
+                request.title,
+                request.question,
+                request.id
             ],
+        )?;
+        let id = self.conn.last_insert_rowid();
+        self.conn.query_row(
+            "SELECT * FROM habit WHERE id = ?1",
+            params![id],
+            Habit::from_row,
         )
     }
 
-    pub fn insert_habit_entries(&mut self, request: InsertHabitEntriesRequest) -> Result<()> {
+    pub fn insert_habit_entries(
+        &mut self,
+        request: InsertHabitEntriesRequest,
+    ) -> Result<Vec<HabitEntry>> {
         let transaction = self.conn.transaction()?;
         {
             let mut statement = transaction
@@ -146,12 +161,18 @@ impl HabitTrackerService {
             for InsertHabitEntryItem {
                 completed,
                 habit_id,
-            } in request.data
+            } in &request.data
             {
                 statement.execute(params![completed, habit_id])?;
             }
         }
-        transaction.commit()
+        transaction.commit()?;
+        let mut statement = self.conn.prepare(
+            "SELECT * FROM (SELECT * FROM habitEntry ORDER BY id DESC LIMIT ?1) ORDER BY id ASC",
+        )?;
+        let habit_entry_iter =
+            statement.query_map(params![request.data.len()], HabitEntry::from_row)?;
+        habit_entry_iter.collect::<Result<Vec<_>>>()
     }
 }
 
@@ -189,12 +210,12 @@ pub mod unit_tests {
         let fixture = Habit {
             id: 1,
             habit_type: HabitType::AppleCalendar,
-            label: "some label".into(),
-            question_label: "some question label".into(),
+            title: "some title".into(),
+            question: "some question".into(),
         };
         db_connection.execute(
-            "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
-            params![fixture.habit_type, fixture.label, fixture.question_label,],
+            "INSERT INTO habit (habitType, title, question) VALUES (?1, ?2, ?3)",
+            params![fixture.habit_type, fixture.title, fixture.question,],
         )?;
         Ok(fixture)
     }
@@ -204,11 +225,6 @@ pub mod unit_tests {
         let app_config = get_app_config("test")?;
         let db_connection = HabitTrackerService::build(app_config)?.conn;
         let fixture = create_habit(&db_connection)?;
-        db_connection.execute(
-            "INSERT INTO habit (habitType, label, questionLabel) VALUES (?1, ?2, ?3)",
-            params![fixture.habit_type, fixture.label, fixture.question_label,],
-        )?;
-
         let mut statement = db_connection.prepare("SELECT * FROM habit")?;
         let queried_habit = statement.query_map([], Habit::from_row)?.next().unwrap()?;
 

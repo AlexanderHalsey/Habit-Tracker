@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useNavigation } from "../Navigation"
 import { useHabitStore } from "../store/habit"
 import { useHabitEntryStore } from "../store/habitEntry"
 
@@ -6,30 +6,7 @@ function Dashboard() {
   const habitStore = useHabitStore()
   const habitEntryStore = useHabitEntryStore()
 
-  const [counter, setCounter] = useState(1)
-  const addSampleHabit = async () => {
-    await habitStore.createHabit({
-      id: counter,
-      habitType: counter % 2 === 0 ? "Daily" : "AppleCalendar",
-      label: "Sample Habit " + counter,
-      questionLabel: `Did you complete the sample habit ${counter} today?`,
-    })
-    setCounter(counter + 1)
-  }
-  const updateSampleHabit = async (habitId: number) => {
-    await habitStore.updateHabit({
-      id: habitId,
-      habitType: "Daily",
-      label: "Updated Sample Habit " + habitId,
-      questionLabel: `Did you complete the updated sample habit ${habitId} today?`,
-    })
-  }
-  const insertSampleHabitEntries = async () => {
-    await habitEntryStore.insertHabitEntries([
-      { id: 1, date: new Date(2022, 2, 2), habitId: 1, completed: true },
-      { id: 2, date: new Date(2023, 2, 2), habitId: 2, completed: false },
-    ])
-  }
+  const { navigate } = useNavigation<"dashboard">()
 
   return (
     <div>
@@ -39,18 +16,19 @@ function Dashboard() {
           <li key={habit.id}>
             Habit ID: {habit.id}
             Habit Type: {habit.habitType}
-            Label: {habit.label}
-            Question Label: {habit.questionLabel}
-            <button onClick={() => updateSampleHabit(habit.id)}>
-              Update Habit
+            Title: {habit.title}
+            Question: {habit.question}
+            <button
+              onClick={() => navigate("habitForm", { habitId: habit.id })}
+            >
+              Update habit
             </button>
           </li>
         ))}
       </ul>
-      <button onClick={insertSampleHabitEntries}>
-        Insert Sample Habit Entries
+      <button onClick={() => navigate("habitForm", { habitId: undefined })}>
+        Create new habit
       </button>
-      <button onClick={addSampleHabit}>Add Sample Habit</button>
       <h2>Habit Entries</h2>
       <ul>
         {habitEntryStore.habitEntries.map((entry) => (
@@ -62,6 +40,7 @@ function Dashboard() {
           </li>
         ))}
       </ul>
+      <button onClick={() => navigate("habitTrackerForm")}>Track habits</button>
     </div>
   )
 }

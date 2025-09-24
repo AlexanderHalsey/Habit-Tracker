@@ -1,5 +1,9 @@
 import { create } from "zustand"
+
 import { getHabits, postHabit, putHabit } from "../api/habitTracker"
+
+import { CreateHabitFormData, UpdateHabitFormData } from "../forms"
+
 import { Habit } from "../models"
 
 interface State {
@@ -8,8 +12,8 @@ interface State {
 
 interface Action {
   fetchHabits: () => Promise<void>
-  createHabit: (newHabit: Habit) => Promise<void>
-  updateHabit: (updatedHabit: Habit) => Promise<void>
+  createHabit: (formData: CreateHabitFormData) => Promise<void>
+  updateHabit: (formData: UpdateHabitFormData) => Promise<void>
 }
 
 export const useHabitStore = create<State & Action>((set) => ({
@@ -18,14 +22,14 @@ export const useHabitStore = create<State & Action>((set) => ({
     const habits = await getHabits()
     set({ habits })
   },
-  createHabit: async (newHabit) => {
-    await postHabit(newHabit)
+  createHabit: async (formData: CreateHabitFormData) => {
+    const habit = await postHabit(formData)
     set((state) => ({
-      habits: [...state.habits, newHabit],
+      habits: [...state.habits, habit],
     }))
   },
-  updateHabit: async (updatedHabit) => {
-    await putHabit(updatedHabit)
+  updateHabit: async (formData: UpdateHabitFormData) => {
+    const updatedHabit = await putHabit(formData)
     set((state) => ({
       habits: state.habits.map((habit) =>
         habit.id === updatedHabit.id ? updatedHabit : habit

@@ -5,16 +5,16 @@ use specta::Type;
 #[derive(Debug, Deserialize, Type)]
 pub struct CreateHabitRequest {
     pub habit_type: HabitType,
-    pub label: String,
-    pub question_label: String,
+    pub title: String,
+    pub question: String,
 }
 
 #[derive(Debug, Deserialize, Type)]
 pub struct UpdateHabitRequest {
-    pub habit_id: i64,
+    pub id: i64,
     pub habit_type: HabitType,
-    pub label: String,
-    pub question_label: String,
+    pub title: String,
+    pub question: String,
 }
 
 #[derive(Debug, Deserialize, Type)]

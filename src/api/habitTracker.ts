@@ -7,6 +7,11 @@ import {
   convertFormDataToUpdateHabitRequest,
 } from "./converters"
 import { Habit as HabitDto, HabitEntry as HabitEntryDto } from "./dtos"
+import {
+  CreateHabitFormData,
+  UpdateHabitFormData,
+  TrackHabitFormData,
+} from "../forms"
 import { Habit, HabitEntry } from "../models"
 
 export const getHabits = async (): Promise<Habit[]> => {
@@ -14,18 +19,22 @@ export const getHabits = async (): Promise<Habit[]> => {
   return response.map(convertDtoToHabit)
 }
 
-export const postHabit = async (newHabit: Habit): Promise<Boolean> => {
-  const response = await invoke<number>("create_habit", {
-    request: convertFormDataToCreateHabitRequest(newHabit),
+export const postHabit = async (
+  formData: CreateHabitFormData
+): Promise<Habit> => {
+  const response = await invoke<HabitDto>("create_habit", {
+    request: convertFormDataToCreateHabitRequest(formData),
   })
-  return !!response
+  return convertDtoToHabit(response)
 }
 
-export const putHabit = async (habit: Habit): Promise<Boolean> => {
+export const putHabit = async (
+  formData: UpdateHabitFormData
+): Promise<Habit> => {
   const response = await invoke<HabitDto>("update_habit", {
-    request: convertFormDataToUpdateHabitRequest(habit),
+    request: convertFormDataToUpdateHabitRequest(formData),
   })
-  return !!response
+  return convertDtoToHabit(response)
 }
 
 export const getHabitEntries = async (): Promise<HabitEntry[]> => {
@@ -34,9 +43,9 @@ export const getHabitEntries = async (): Promise<HabitEntry[]> => {
 }
 
 export const postHabitEntries = async (
-  newEntries: HabitEntry[]
+  formData: TrackHabitFormData
 ): Promise<Boolean> => {
   return await invoke<Boolean>("insert_habit_entries", {
-    request: convertFormDataToInsertHabitEntriesRequest(newEntries),
+    request: convertFormDataToInsertHabitEntriesRequest(formData),
   })
 }

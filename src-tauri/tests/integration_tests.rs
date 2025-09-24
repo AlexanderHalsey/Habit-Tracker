@@ -16,19 +16,19 @@ fn test_habit_methods() -> Result<(), Box<dyn Error>> {
     let habit_tracker_service = mock_habit_tracker_service()?;
     habit_tracker_service.create_habit(CreateHabitRequest {
         habit_type: HabitType::Daily,
-        label: "some label".to_string(),
-        question_label: "some question label".to_string(),
+        title: "some title".to_string(),
+        question: "some question".to_string(),
     })?;
     habit_tracker_service.create_habit(CreateHabitRequest {
         habit_type: HabitType::AppleCalendar,
-        label: "some other label".to_string(),
-        question_label: "some other question label".to_string(),
+        title: "some other title".to_string(),
+        question: "some other question".to_string(),
     })?;
     habit_tracker_service.update_habit(UpdateHabitRequest {
-        habit_id: 1,
+        id: 1,
         habit_type: HabitType::AppleCalendar,
-        label: "updated label".to_string(),
-        question_label: "updated question label".to_string(),
+        title: "updated title".to_string(),
+        question: "updated question".to_string(),
     })?;
     let habits = habit_tracker_service.get_habits()?;
     assert_eq!(habits.len(), 2);
@@ -38,14 +38,14 @@ fn test_habit_methods() -> Result<(), Box<dyn Error>> {
             Habit {
                 id: 1,
                 habit_type: HabitType::AppleCalendar,
-                label: "updated label".to_string(),
-                question_label: "updated question label".to_string(),
+                title: "updated title".to_string(),
+                question: "updated question".to_string(),
             },
             Habit {
                 id: 2,
                 habit_type: HabitType::AppleCalendar,
-                label: "some other label".to_string(),
-                question_label: "some other question label".to_string(),
+                title: "some other title".to_string(),
+                question: "some other question".to_string(),
             }
         ],
     );
@@ -57,15 +57,15 @@ fn test_habit_entry_methods() -> Result<(), Box<dyn Error>> {
     let mut habit_tracker_service = mock_habit_tracker_service()?;
     habit_tracker_service.create_habit(CreateHabitRequest {
         habit_type: HabitType::Daily,
-        label: "some label".to_string(),
-        question_label: "some question label".to_string(),
+        title: "some title".to_string(),
+        question: "some question".to_string(),
     })?;
     habit_tracker_service.create_habit(CreateHabitRequest {
         habit_type: HabitType::AppleCalendar,
-        label: "some other label".to_string(),
-        question_label: "some other question label".to_string(),
+        title: "some other title".to_string(),
+        question: "some other question".to_string(),
     })?;
-    habit_tracker_service.insert_habit_entries(InsertHabitEntriesRequest {
+    let habit_entries = habit_tracker_service.insert_habit_entries(InsertHabitEntriesRequest {
         data: vec![
             InsertHabitEntryItem {
                 habit_id: 2,
@@ -77,7 +77,6 @@ fn test_habit_entry_methods() -> Result<(), Box<dyn Error>> {
             },
         ],
     })?;
-    let habit_entries = habit_tracker_service.get_habit_entries()?;
     assert_eq!(habit_entries.len(), 2);
     assert_eq!(
         (

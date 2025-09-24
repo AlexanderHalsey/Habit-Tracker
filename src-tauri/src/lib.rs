@@ -35,7 +35,7 @@ fn get_habit_entries(state: State<Mutex<HabitTrackerService>>) -> Result<Vec<Hab
 fn create_habit(
     state: State<Mutex<HabitTrackerService>>,
     request: CreateHabitRequest,
-) -> Result<usize, String> {
+) -> Result<Habit, String> {
     let habit_tracker_service = state.lock().unwrap();
     habit_tracker_service
         .create_habit(request)
@@ -46,7 +46,7 @@ fn create_habit(
 fn update_habit(
     state: State<Mutex<HabitTrackerService>>,
     request: UpdateHabitRequest,
-) -> Result<usize, String> {
+) -> Result<Habit, String> {
     let habit_tracker_service = state.lock().unwrap();
     habit_tracker_service
         .update_habit(request)
@@ -57,12 +57,11 @@ fn update_habit(
 fn insert_habit_entries(
     state: State<Mutex<HabitTrackerService>>,
     request: InsertHabitEntriesRequest,
-) -> Result<bool, String> {
+) -> Result<Vec<HabitEntry>, String> {
     let mut habit_tracker_service = state.lock().unwrap();
     habit_tracker_service
         .insert_habit_entries(request)
-        .map_err(|e| e.to_string())?;
-    Ok(true)
+        .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
