@@ -1,15 +1,13 @@
-import React, { Suspense } from "react"
+import React from "react"
 import ReactDOM from "react-dom/client"
 
 import App from "./App"
-import NavigationProvider from "./Navigation"
+
+import "react-calendar/dist/Calendar.css"
+import "./App.css"
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Suspense fallback={<div>Loading...</div>}>
-      <NavigationProvider>
-        <App />
-      </NavigationProvider>
-    </Suspense>
+    <App />
   </React.StrictMode>
 )

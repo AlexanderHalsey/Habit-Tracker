@@ -2,28 +2,35 @@ import { create } from "zustand"
 
 import { getHabitEntries, postHabitEntries } from "../api/habitTracker"
 
+import { datesAreEqual } from "../date-helpers"
 import { TrackHabitFormData } from "../forms"
 
 import { HabitEntry } from "../models"
 
 interface State {
   habitEntries: HabitEntry[]
+  isTrackedToday: boolean
 }
 
 interface Action {
   fetchHabitEntries: () => Promise<void>
-  insertHabitEntries: (newEntries: TrackHabitFormData) => Promise<void>
+  trackHabits: (formData: TrackHabitFormData) => Promise<void>
 }
 
-export const useHabitEntryStore = create<State & Action>((set) => ({
+export const useHabitEntryStore = create<State & Action>((set, get) => ({
   habitEntries: [],
+  isTrackedToday: false,
   fetchHabitEntries: async () => {
     const habitEntries = await getHabitEntries()
-    set({ habitEntries })
+    const isTrackedToday = habitEntries.some((entry) =>
+      datesAreEqual(entry.date, new Date())
+    )
+    set({ habitEntries, isTrackedToday })
   },
-  insertHabitEntries: async (newEntries) => {
-    await postHabitEntries(newEntries)
+  trackHabits: async (formData) => {
+    if (get().isTrackedToday) return
+    await postHabitEntries(formData)
     const habitEntries = await getHabitEntries()
-    set({ habitEntries })
+    set({ habitEntries, isTrackedToday: true })
   },
 }))

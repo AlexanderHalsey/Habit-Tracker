@@ -6,3 +6,12 @@ export type Habit = {
   title: string
   question: string
 }
+
+export type HabitCompletionRate = {
+  completed: number
+  total: number
+}
+
+export type HabitWithCompletionRate = Habit & {
+  completionRate: HabitCompletionRate
+}

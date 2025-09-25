@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 
 src-tauri/habits.db
+src-tauri/tests/*.sql

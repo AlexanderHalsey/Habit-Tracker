@@ -14,11 +14,11 @@ function HabitTrackerForm() {
   const { navigate } = useNavigation<"habitTrackerForm">()
 
   const [formData, setFormData] = useState<
-    { habitId: number; completed: boolean | undefined }[]
+    { habitId: number; completed: boolean }[]
   >(
     habitStore.habits.map((habit) => ({
       habitId: habit.id,
-      completed: undefined,
+      completed: false,
     }))
   )
 
@@ -31,7 +31,7 @@ function HabitTrackerForm() {
       return null
     }
 
-    await habitEntryStore.insertHabitEntries(result.data)
+    await habitEntryStore.trackHabits(result.data)
     navigate("dashboard")
   }
 
@@ -40,7 +40,7 @@ function HabitTrackerForm() {
       <button onClick={() => navigate("dashboard")}>Go Back</button>
       {habitStore.habits.map((habit, index) => (
         <div key={habit.id}>
-          <span>{habit.title}</span>
+          <span>{habit.question}</span>
           <input
             type="checkbox"
             checked={formData[index].completed === true}

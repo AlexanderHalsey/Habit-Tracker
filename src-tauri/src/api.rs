@@ -142,10 +142,9 @@ impl HabitTrackerService {
                 request.id
             ],
         )?;
-        let id = self.conn.last_insert_rowid();
         self.conn.query_row(
             "SELECT * FROM habit WHERE id = ?1",
-            params![id],
+            params![request.id],
             Habit::from_row,
         )
     }
