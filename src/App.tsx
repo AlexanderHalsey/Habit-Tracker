@@ -1,15 +1,60 @@
-import { Suspense } from "react"
+import { useEffect, useState } from "react"
 
-import NavigationProvider from "./Navigation"
-import MainLayout from "./layouts/Main"
+import Dashboard from "./Dashboard"
+
+import { useHabitStore, useHabitEntryStore } from "@/store"
+
+import {
+  CreateHabitFormData,
+  TrackHabitFormData,
+  UpdateHabitFormData,
+} from "./forms/schemas"
 
 function App() {
+  const habitStore = useHabitStore()
+  const habitEntryStore = useHabitEntryStore()
+
+  const [loading, setLoading] = useState(true)
+
+  const trackHabits = async (formData: TrackHabitFormData) => {
+    setLoading(true)
+    await habitEntryStore.trackHabits(formData)
+    setLoading(false)
+  }
+
+  const createHabit = async (formData: CreateHabitFormData) => {
+    setLoading(true)
+    await habitStore.createHabit(formData)
+    setLoading(false)
+  }
+
+  const updateHabit = async (formData: UpdateHabitFormData) => {
+    setLoading(true)
+    await habitStore.updateHabit(formData)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await habitStore.fetchHabits()
+      await habitEntryStore.fetchHabitEntries()
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return <main>Loading...</main>
+  }
+
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <NavigationProvider>
-        <MainLayout />
-      </NavigationProvider>
-    </Suspense>
+    <main>
+      <Dashboard
+        trackHabits={trackHabits}
+        createHabit={createHabit}
+        updateHabit={updateHabit}
+      />
+    </main>
   )
 }
 

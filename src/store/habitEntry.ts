@@ -2,8 +2,8 @@ import { create } from "zustand"
 
 import { getHabitEntries, postHabitEntries } from "../api/habitTracker"
 
-import { datesAreEqual } from "../date-helpers"
-import { TrackHabitFormData } from "../forms"
+import { datesAreEqual } from "@/lib/utils"
+import { TrackHabitFormData } from "../forms/schemas"
 
 import { HabitEntry } from "../models"
 

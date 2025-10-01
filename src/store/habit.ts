@@ -2,7 +2,7 @@ import { create } from "zustand"
 
 import { getHabits, postHabit, putHabit } from "../api/habitTracker"
 
-import { CreateHabitFormData, UpdateHabitFormData } from "../forms"
+import { CreateHabitFormData, UpdateHabitFormData } from "../forms/schemas"
 
 import { Habit } from "../models"
 

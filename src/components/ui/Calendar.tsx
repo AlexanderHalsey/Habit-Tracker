@@ -1,13 +1,16 @@
 import { Calendar as ReactCalendar } from "react-calendar"
 
-import { datesAreEqual } from "../date-helpers"
+import { datesAreEqual } from "@/lib/utils"
 
-import { HabitEntry } from "../models"
+import { HabitEntry } from "../../models"
 
 function Calendar({ habitEntries }: { habitEntries: HabitEntry[] }) {
   return (
     <ReactCalendar
       tileDisabled={() => true}
+      next2Label={null}
+      prev2Label={null}
+      minDetail="month"
       tileContent={({ date }) => {
         const habitEntry = habitEntries.find((habitEntry) =>
           datesAreEqual(habitEntry.date, date)
@@ -22,4 +25,4 @@ function Calendar({ habitEntries }: { habitEntries: HabitEntry[] }) {
   )
 }
 
-export default Calendar
+export { Calendar }

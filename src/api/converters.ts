@@ -2,7 +2,7 @@ import {
   CreateHabitFormData,
   TrackHabitFormData,
   UpdateHabitFormData,
-} from "../forms"
+} from "../forms/schemas"
 import { Habit, HabitEntry } from "../models"
 import {
   CreateHabitRequest,

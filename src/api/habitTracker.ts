@@ -11,7 +11,7 @@ import {
   CreateHabitFormData,
   UpdateHabitFormData,
   TrackHabitFormData,
-} from "../forms"
+} from "../forms/schemas"
 import { Habit, HabitEntry } from "../models"
 
 export const getHabits = async (): Promise<Habit[]> => {
