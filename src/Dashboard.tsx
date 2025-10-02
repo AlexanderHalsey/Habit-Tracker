@@ -7,8 +7,8 @@ import { getFirstTrackedDayOfMonth } from "@/lib/utils"
 import HabitForm from "@/forms/HabitForm"
 import HabitTrackerForm from "@/forms/HabitTrackerForm"
 
+import { HabitTrackerCalendar } from "@/components/HabitTrackerCalendar"
 import { Button } from "@/components/ui/Button"
-import { Calendar } from "@/components/ui/Calendar"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog"
 import { Separator } from "@/components/ui/Separator"
 
@@ -76,36 +76,44 @@ function Dashboard({
   const [openDialog3, setOpenDialog3] = useState(false)
 
   return (
-    <div className="h-screen flex justify-center items-center gap-8 p-8">
-      <div className="space-y-2 flex flex-col w-full">
-        {habitsWithCompletionRates.map((habit) => (
-          <div
-            key={habit.id}
-            className={`flex items-center justify-between pe-4 rounded-md ${
-              currentHabit?.id === habit.id ? "bg-green-50" : ""
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1 me-12">
-              <Dialog open={openDialog1} onOpenChange={setOpenDialog1}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost">{habit.title}</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <HabitForm
-                    habit={habit}
-                    updateHabit={updateHabit}
-                    close={() => setOpenDialog1(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+    <div className="h-screen flex items-center gap-4 p-4">
+      <div className="gap-6 flex flex-col justify-between h-full w-full">
+        <h3 className="h-10 text-lg font-medium flex items-center justify-center">
+          Habits for{" "}
+          {new Intl.DateTimeFormat("en-GB", {
+            month: "long",
+          }).format(new Date())}
+        </h3>
+        <div className="grow">
+          {habitsWithCompletionRates.map((habit) => (
+            <div
+              key={habit.id}
+              className={`flex items-center justify-between pe-4 rounded-md ${
+                currentHabit?.id === habit.id ? "bg-primary text-white" : ""
+              }`}
+            >
+              <div className="flex items-center justify-center p-1 me-12">
+                <Dialog open={openDialog1} onOpenChange={setOpenDialog1}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost">{habit.title}</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <HabitForm
+                      habit={habit}
+                      updateHabit={updateHabit}
+                      close={() => setOpenDialog1(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {!!habit.completionRate.total && (
+                <strong>
+                  {`${habit.completionRate.completed} / ${habit.completionRate.total}`}
+                </strong>
+              )}
             </div>
-            {!!habit.completionRate.total && (
-              <strong>
-                {`${habit.completionRate.completed} / ${habit.completionRate.total}`}
-              </strong>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
         <div className="mt-2 flex justify-center">
           <Dialog open={openDialog2} onOpenChange={setOpenDialog2}>
             <DialogTrigger asChild>
@@ -124,7 +132,7 @@ function Dashboard({
       {currentHabit && (
         <>
           <Separator orientation="vertical" />
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-6 h-full w-full justify-between">
             <div className="w-80 flex justify-between items-center gap-4">
               {habitStore.habits.length > 1 && (
                 <Button variant="ghost" onClick={() => rotateCurrentHabit(-1)}>
@@ -145,25 +153,33 @@ function Dashboard({
                 </Button>
               )}
             </div>
+            <div>
+              <HabitTrackerCalendar
+                habitEntries={habitEntryStore.habitEntries.filter(
+                  (entry) => entry.habitId === currentHabit.id
+                )}
+              />
+            </div>
+            <div>
+              <p>Hello there!</p>
+              <p>And another p</p>
+            </div>
 
-            <Calendar
-              habitEntries={habitEntryStore.habitEntries.filter(
-                (entry) => entry.habitId === currentHabit.id
-              )}
-            />
-            {!habitEntryStore.isTrackedToday && (
-              <Dialog open={openDialog3} onOpenChange={setOpenDialog3}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">TrackHabits</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <HabitTrackerForm
-                    close={() => setOpenDialog3(false)}
-                    trackHabits={trackHabits}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
+            <Dialog open={openDialog3} onOpenChange={setOpenDialog3}>
+              <DialogTrigger asChild>
+                <Button
+                  className={habitEntryStore.isTrackedToday ? "invisible" : ""}
+                >
+                  Track habits
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <HabitTrackerForm
+                  close={() => setOpenDialog3(false)}
+                  trackHabits={trackHabits}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </>
       )}

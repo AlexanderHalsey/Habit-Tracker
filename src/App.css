@@ -118,3 +118,45 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .react-calendar {
+    width: calc(var(--spacing) * 80) !important;
+    border-radius: var(--radius);
+    border: 3px dashed var(--color-border) !important;
+    font-family: unset !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: calc(var(--spacing) * 4);
+
+    .react-calendar__navigation {
+      width: calc(var(--spacing) * 75);
+      height: unset !important;
+
+      > button {
+        min-width: unset !important;
+
+        &:enabled:hover {
+          background-color: unset !important;
+        }
+
+        > button:hover {
+          background-color: var(--color-accent) !important;
+        }
+      }
+    }
+
+    button:disabled {
+      background-color: unset !important;
+    }
+
+    abbr {
+      text-decoration: none;
+    }
+  }
+
+  div:has(> .react-calendar) {
+    min-height: 21.75rem;
+  }
+}
