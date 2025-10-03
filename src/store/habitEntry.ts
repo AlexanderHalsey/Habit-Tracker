@@ -2,7 +2,7 @@ import { create } from "zustand"
 
 import { getHabitEntries, postHabitEntries } from "../api/habitTracker"
 
-import { datesAreEqual } from "@/lib/utils"
+import { isSameDay } from "date-fns"
 import { TrackHabitFormData } from "../forms/schemas"
 
 import { HabitEntry } from "../models"
@@ -23,7 +23,7 @@ export const useHabitEntryStore = create<State & Action>((set, get) => ({
   fetchHabitEntries: async () => {
     const habitEntries = await getHabitEntries()
     const isTrackedToday = habitEntries.some((entry) =>
-      datesAreEqual(entry.date, new Date())
+      isSameDay(entry.date, new Date())
     )
     set({ habitEntries, isTrackedToday })
   },

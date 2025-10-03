@@ -24,5 +24,6 @@ dist-ssr
 *.sw?
 
 src-tauri/habits.db
+src-tauri/habits.db-journal
 src-tauri/tests/*.sql
 TODO.md

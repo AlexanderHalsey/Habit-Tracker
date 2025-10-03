@@ -6,7 +6,7 @@
   "tailwind": {
     "config": "",
     "css": "src/App.css",
-    "baseColor": "slate",
+    "baseColor": "blue",
     "cssVariables": true,
     "prefix": ""
   },
@@ -14,7 +14,7 @@
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",
-    "ui": "@/components",
+    "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

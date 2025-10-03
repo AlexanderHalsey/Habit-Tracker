@@ -49,9 +49,9 @@
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.62 0.19 260);
   --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
+  --secondary: oklch(0.84 0.16 84);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
@@ -122,8 +122,8 @@
 @layer components {
   .react-calendar {
     width: calc(var(--spacing) * 80) !important;
-    border-radius: var(--radius);
-    border: 3px dashed var(--color-border) !important;
+    /* border-radius: var(--radius); */
+    border: unset !important;
     font-family: unset !important;
     display: flex;
     flex-direction: column;
@@ -131,6 +131,8 @@
     padding: calc(var(--spacing) * 2);
 
     .react-calendar__navigation {
+      display: grid !important;
+      grid-template-columns: repeat(7, 1fr) !important;
       width: calc(var(--spacing) * 75);
       height: unset !important;
 
@@ -143,6 +145,15 @@
           background-color: var(--color-accent) !important;
         }
       }
+      .react-calendar__navigation__prev-button {
+        grid-column: 1 / 2;
+      }
+      .react-calendar__navigation__label {
+        grid-column: 2 / 7;
+      }
+      .react-calendar__navigation__next-button {
+        grid-column: 7 / 8;
+      }
     }
 
     button:disabled {
@@ -152,9 +163,5 @@
     abbr {
       text-decoration: none;
     }
-  }
-
-  div:has(> .react-calendar) {
-    min-height: 21.75rem;
   }
 }

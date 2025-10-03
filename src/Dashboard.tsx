@@ -2,16 +2,18 @@ import { useState } from "react"
 
 import { useHabitStore, useHabitEntryStore } from "@/store"
 
-import { getFirstTrackedDayOfMonth } from "@/lib/utils"
-
 import HabitFormDialog from "@/forms/HabitFormDialog"
 import HabitTrackerFormDialog from "@/forms/HabitTrackerFormDialog"
 
 import { HabitTrackerCalendar } from "@/components/HabitTrackerCalendar"
+import { HabitSummaryInfo } from "@/components/HabitSummaryInfo"
 import { Button } from "@/components/ui/Button"
 import { Separator } from "@/components/ui/Separator"
 
 import { PenBoxIcon } from "lucide-react"
+
+import { cn } from "./lib/utils"
+import { getYear } from "date-fns"
 
 import {
   CreateHabitFormData,
@@ -19,7 +21,7 @@ import {
   UpdateHabitFormData,
 } from "./forms/schemas"
 
-import { Habit, HabitCompletionRate } from "@/models"
+import { Habit, HabitEntry } from "@/models"
 
 function Dashboard({
   trackHabits,
@@ -30,43 +32,48 @@ function Dashboard({
   createHabit: (formData: CreateHabitFormData) => Promise<void>
   updateHabit: (formData: UpdateHabitFormData) => Promise<void>
 }) {
-  const habitStore = useHabitStore()
-  const habitEntryStore = useHabitEntryStore()
+  const { habits } = useHabitStore()
+  const { habitEntries, isTrackedToday } = useHabitEntryStore()
 
-  const firstTrackedDayOfMonth =
-    getFirstTrackedDayOfMonth(habitEntryStore.habitEntries) || new Date()
-
-  const getMonthlyCompletionRate = (habit: Habit): HabitCompletionRate => {
-    const entries = habitEntryStore.habitEntries.filter(
-      (entry) =>
-        entry.habitId === habit.id && entry.date >= firstTrackedDayOfMonth
-    )
-
-    const completed = entries.filter((entry) => entry.completed).length
-    const total = new Date().getDate() - firstTrackedDayOfMonth.getDate() + 1
-
-    return { completed, total }
+  const getEntriesByHabit = (habit: Habit) => {
+    return habitEntries.filter((entry) => entry.habitId === habit.id)
   }
 
-  const [currentHabit, setCurrentHabit] = useState<Habit>(habitStore.habits[0])
+  const [currentHabit, setCurrentHabit] = useState<Habit>(habits[0])
+  const [currentHabitEntries, setCurrentHabitEntries] = useState<HabitEntry[]>(
+    getEntriesByHabit(currentHabit)
+  )
+  const [currentStartDate, setCurrentStartDate] = useState<Date>(new Date())
+
+  const firstTrackedDay =
+    habitEntries.length > 0
+      ? new Date(
+          Math.min(...currentHabitEntries.map((entry) => entry.date.getTime()))
+        )
+      : undefined
 
   return (
     <div className="h-screen flex items-center justify-center gap-4 p-4">
       <div className="flex flex-col items-center justify-center h-full">
-        {habitStore.habits.length > 0 && (
+        {habits.length > 0 && (
           <div className="grow w-full flex flex-col gap-1">
-            {habitStore.habits.map((habit) => (
+            {habits.map((habit) => (
               <div
                 key={habit.id}
-                className={`flex items-center justify-between rounded-lg ${
+                className={cn(
+                  "flex items-center justify-between rounded-lg",
+
                   currentHabit?.id === habit.id ? "bg-primary text-white" : ""
-                }`}
+                )}
               >
                 <Button
                   variant="ghost"
                   className="w-full"
                   disabled={currentHabit?.id === habit.id}
-                  onClick={() => setCurrentHabit(habit)}
+                  onClick={() => {
+                    setCurrentHabit(habit)
+                    setCurrentHabitEntries(getEntriesByHabit(habit))
+                  }}
                 >
                   {habit.title}
                 </Button>
@@ -80,9 +87,9 @@ function Dashboard({
             submit={createHabit}
             trigger={<Button variant="outline">Create a new habit</Button>}
           />
-          {currentHabit && !habitEntryStore.isTrackedToday && (
+          {currentHabit && !isTrackedToday && (
             <HabitTrackerFormDialog
-              habits={habitStore.habits}
+              habits={habits}
               trackHabits={trackHabits}
               trigger={<Button className="w-full">Track habits</Button>}
             />
@@ -93,7 +100,7 @@ function Dashboard({
       {currentHabit && (
         <>
           <Separator orientation="vertical" />
-          <div className="flex flex-col items-center gap-6 h-full w-full justify-between">
+          <div className="flex flex-col items-center gap-8 h-full w-full justify-between">
             <div className="flex items-center gap-1">
               <h3 className="text-xl font-medium">{currentHabit.title}</h3>
               <HabitFormDialog
@@ -106,21 +113,25 @@ function Dashboard({
                 }
               />
             </div>
-            <div>
-              <p>Hello there!</p>
-              <p>And another p</p>
-            </div>
-
-            {/* {!!currentHabit.completionRate.total && (
-                  <strong>
-                    {`${currentHabit.completionRate.completed} / ${currentHabit.completionRate.total}`}
-                  </strong>
-                )} */}
-            <div>
+            <HabitSummaryInfo
+              habitEntries={currentHabitEntries}
+              firstTrackedDay={firstTrackedDay}
+              className="w-9/10"
+            />
+            <div className="grow flex flex-col gap-2 items-center justify-between border-3 rounded-lg border-dashed p-2">
               <HabitTrackerCalendar
-                habitEntries={habitEntryStore.habitEntries.filter(
-                  (entry) => entry.habitId === currentHabit.id
-                )}
+                habitEntries={currentHabitEntries}
+                firstTrackedDay={firstTrackedDay}
+                currentStartDate={currentStartDate}
+                onMonthChange={setCurrentStartDate}
+              />
+              {/* monthly summary */}
+              <HabitSummaryInfo
+                habitEntries={currentHabitEntries}
+                firstTrackedDay={firstTrackedDay}
+                year={getYear(currentStartDate)}
+                month={currentStartDate.getMonth()}
+                className="w-9/10"
               />
             </div>
           </div>
