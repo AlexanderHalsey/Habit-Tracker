@@ -34,10 +34,10 @@ export const convertFormDataToUpdateHabitRequest = (
 }
 
 export const convertFormDataToInsertHabitEntriesRequest = (
-  habitEntries: TrackHabitFormData
+  formData: TrackHabitFormData
 ): InsertHabitEntriesRequest => {
   return {
-    data: habitEntries.map((entry) => ({
+    data: formData.entries.map((entry) => ({
       habit_id: entry.habitId,
       completed: entry.completed,
     })),

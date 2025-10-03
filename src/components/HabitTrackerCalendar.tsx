@@ -2,7 +2,6 @@ import { Calendar as ReactCalendar } from "react-calendar"
 
 import { datesAreEqual } from "@/lib/utils"
 
-import { Button } from "./ui/Button"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 import { HabitEntry } from "@/models"
@@ -18,16 +17,8 @@ function HabitTrackerCalendar({
       minDetail="month"
       next2Label={null}
       prev2Label={null}
-      nextLabel={
-        <Button variant="ghost">
-          <ChevronRightIcon size="16" />
-        </Button>
-      }
-      prevLabel={
-        <Button variant="ghost">
-          <ChevronLeftIcon size="16" />
-        </Button>
-      }
+      nextLabel={<ChevronRightIcon size="16" />}
+      prevLabel={<ChevronLeftIcon size="16" />}
       tileClassName={() => {
         let tileClassName = "relative h-full aspect-square"
         return tileClassName

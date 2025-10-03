@@ -128,7 +128,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: calc(var(--spacing) * 4);
+    padding: calc(var(--spacing) * 2);
 
     .react-calendar__navigation {
       width: calc(var(--spacing) * 75);
@@ -136,12 +136,10 @@
 
       > button {
         min-width: unset !important;
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--radius);
 
         &:enabled:hover {
-          background-color: unset !important;
-        }
-
-        > button:hover {
           background-color: var(--color-accent) !important;
         }
       }

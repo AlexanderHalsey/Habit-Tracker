@@ -1,26 +1,30 @@
 import z from "zod"
 
 export const habitFormSchema = z.object({
-  habitType: z.enum(["Daily", "AppleCalendar"]),
-  title: z.string().min(2).max(100),
-  question: z.string().min(2).max(100),
+  habitType: z.enum(["Daily", "AppleCalendar"], {
+    error: "Required",
+  }),
+  title: z
+    .string({ error: "Required" })
+    .min(2, { error: "Too short" })
+    .max(100),
+  question: z
+    .string({ error: "Required" })
+    .min(2, { error: "Too short" })
+    .max(100),
 })
 
-export type CreateHabitFormData = z.infer<typeof habitFormSchema>
+export type HabitFormData = z.infer<typeof habitFormSchema>
+export type CreateHabitFormData = HabitFormData
+export type UpdateHabitFormData = HabitFormData & { id: number }
 
-export type UpdateHabitFormData = CreateHabitFormData & { id: number }
+export const trackHabitFormSchema = z.object({
+  entries: z.array(
+    z.object({
+      habitId: z.number().min(1),
+      completed: z.boolean(),
+    })
+  ),
+})
 
-export const getTrackHabitFormSchema = (habitLength: number) => {
-  return z
-    .array(
-      z.object({
-        habitId: z.number().min(1),
-        completed: z.boolean(),
-      })
-    )
-    .max(habitLength)
-}
-
-export type TrackHabitFormData = z.infer<
-  ReturnType<typeof getTrackHabitFormSchema>
->
+export type TrackHabitFormData = z.infer<typeof trackHabitFormSchema>

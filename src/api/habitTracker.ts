@@ -9,8 +9,8 @@ import {
 import { Habit as HabitDto, HabitEntry as HabitEntryDto } from "./dtos"
 import {
   CreateHabitFormData,
-  UpdateHabitFormData,
   TrackHabitFormData,
+  UpdateHabitFormData,
 } from "../forms/schemas"
 import { Habit, HabitEntry } from "../models"
 

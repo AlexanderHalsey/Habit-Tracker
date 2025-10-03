@@ -44,8 +44,6 @@ function Dashboard({
     const completed = entries.filter((entry) => entry.completed).length
     const total = new Date().getDate() - firstTrackedDayOfMonth.getDate() + 1
 
-    console.log(completed, total, firstTrackedDayOfMonth)
-
     return { completed, total }
   }
 
@@ -77,44 +75,49 @@ function Dashboard({
 
   return (
     <div className="h-screen flex items-center gap-4 p-4">
-      <div className="gap-6 flex flex-col justify-between h-full w-full">
-        <h3 className="h-10 text-lg font-medium flex items-center justify-center">
-          Habits for{" "}
-          {new Intl.DateTimeFormat("en-GB", {
-            month: "long",
-          }).format(new Date())}
-        </h3>
-        <div className="grow">
-          {habitsWithCompletionRates.map((habit) => (
-            <div
-              key={habit.id}
-              className={`flex items-center justify-between pe-4 rounded-md ${
-                currentHabit?.id === habit.id ? "bg-primary text-white" : ""
-              }`}
-            >
-              <div className="flex items-center justify-center p-1 me-12">
-                <Dialog open={openDialog1} onOpenChange={setOpenDialog1}>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost">{habit.title}</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <HabitForm
-                      habit={habit}
-                      updateHabit={updateHabit}
-                      close={() => setOpenDialog1(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {!!habit.completionRate.total && (
-                <strong>
-                  {`${habit.completionRate.completed} / ${habit.completionRate.total}`}
-                </strong>
-              )}
+      <div className="gap-6 flex flex-col items-center justify-between h-full w-full">
+        {habitsWithCompletionRates.length > 0 && (
+          <>
+            <h3 className="h-10 text-lg font-medium flex items-center justify-center">
+              Habits for{" "}
+              {new Intl.DateTimeFormat("en-GB", {
+                month: "long",
+              }).format(new Date())}
+            </h3>
+
+            <div className="grow w-full">
+              {habitsWithCompletionRates.map((habit) => (
+                <div
+                  key={habit.id}
+                  className={`flex items-center justify-between pe-4 rounded-md ${
+                    currentHabit?.id === habit.id ? "bg-primary text-white" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-center p-1 me-12">
+                    <Dialog open={openDialog1} onOpenChange={setOpenDialog1}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost">{habit.title}</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <HabitForm
+                          habit={habit}
+                          submit={updateHabit}
+                          close={() => setOpenDialog1(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  {!!habit.completionRate.total && (
+                    <strong>
+                      {`${habit.completionRate.completed} / ${habit.completionRate.total}`}
+                    </strong>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="mt-2 flex justify-center">
+          </>
+        )}
+        <div className="mt-2 flex justify-center items-center">
           <Dialog open={openDialog2} onOpenChange={setOpenDialog2}>
             <DialogTrigger asChild>
               <Button variant="outline">Create new habit</Button>
@@ -122,7 +125,7 @@ function Dashboard({
             <DialogContent className="sm:max-w-md">
               <HabitForm
                 close={() => setOpenDialog2(false)}
-                createHabit={createHabit}
+                submit={createHabit}
               />
             </DialogContent>
           </Dialog>
@@ -175,6 +178,7 @@ function Dashboard({
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <HabitTrackerForm
+                  habits={habitStore.habits}
                   close={() => setOpenDialog3(false)}
                   trackHabits={trackHabits}
                 />

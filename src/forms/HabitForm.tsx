@@ -1,115 +1,137 @@
-import { useState } from "react"
+import { HabitFormData, habitFormSchema } from "./schemas"
 
-import {
-  CreateHabitFormData,
-  habitFormSchema,
-  UpdateHabitFormData,
-} from "./schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/Button"
 import {
   DialogClose,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog"
 import { Input } from "@/components/ui/Input"
-import { Label } from "@/components/ui/Label"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/Form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup"
 
-import { Habit, HabitType } from "@/models"
+import { Habit } from "@/models"
 
 function HabitForm({
   habit,
   close,
-  createHabit,
-  updateHabit,
-}: {
-  habit?: Habit
-  close: () => void
-  createHabit?: (formData: CreateHabitFormData) => Promise<void>
-  updateHabit?: (formData: UpdateHabitFormData) => Promise<void>
-}) {
-  const [formData, setFormData] = useState<{
-    habitType?: HabitType
-    title?: string
-    question?: string
-  }>(habit ?? {})
-
-  const validate = async () => {
-    const result = habitFormSchema.safeParse(formData)
-    if (!result.success) {
-      console.error(result.error)
-      return null
+  submit,
+}:
+  | {
+      habit?: undefined
+      close: () => void
+      submit: (formData: HabitFormData) => Promise<void>
     }
+  | {
+      habit: Habit
+      close: () => void
+      submit: (formData: HabitFormData & { id: number }) => Promise<void>
+    }) {
+  const form = useForm<HabitFormData>({
+    resolver: zodResolver(habitFormSchema),
+    defaultValues: habit || {},
+  })
 
-    if (habit && !!updateHabit) {
-      await updateHabit({
-        id: habit.id,
-        ...result.data,
-      })
-    } else if (!!createHabit) {
-      await createHabit(result.data)
+  const onSubmit = async (formData: HabitFormData) => {
+    if (habit) {
+      await submit({ ...formData, id: habit.id })
+    } else {
+      await submit(formData)
     }
     close()
   }
 
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{habit ? "Update" : "Create"} Habit</DialogTitle>
-      </DialogHeader>
-      <div className="grid grid-cols-5 gap-4 mt-4">
-        <Label htmlFor="habitType">Type</Label>
-        <RadioGroup
-          id="habitType"
-          value={formData.habitType}
-          className="col-span-4"
-          onValueChange={(value) =>
-            setFormData({ ...formData, habitType: value as HabitType })
-          }
-        >
-          <div className="flex items-center space-x-4">
-            <RadioGroupItem value="Daily" id="daily" />
-            <Label htmlFor="daily">Daily</Label>
-          </div>
-          <div className="flex items-center space-x-4">
-            <RadioGroupItem value="AppleCalendar" id="apple-calendar" />
-            <Label htmlFor="apple-calendar">Apple Calendar</Label>
-          </div>
-        </RadioGroup>
-      </div>
-      <div className="grid grid-cols-5 gap-4">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          className="col-span-4"
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <DialogHeader>
+          <DialogTitle>{habit ? "Update" : "Create"} Habit</DialogTitle>
+        </DialogHeader>
+        <DialogDescription className="mb-8">
+          {habit
+            ? "Update the details of your habit."
+            : "Fill out the details to create a new habit."}
+        </DialogDescription>
+        <FormField
+          control={form.control}
+          name="habitType"
+          render={({ field }) => (
+            <FormItem className="grid grid-cols-5 mt-4">
+              <FormLabel>Type</FormLabel>
+              <div className="col-span-4">
+                <FormControl>
+                  <RadioGroup {...field} className="flex gap-12">
+                    <FormItem className="flex gap-3">
+                      <FormControl>
+                        <RadioGroupItem value="Daily" />
+                      </FormControl>
+                      <FormLabel>Daily</FormLabel>
+                    </FormItem>
+                    <FormItem className="flex gap-3">
+                      <FormControl>
+                        <RadioGroupItem value="AppleCalendar" />
+                      </FormControl>
+                      <FormLabel>Apple Calendar</FormLabel>
+                    </FormItem>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid grid-cols-5 gap-4 mb-4">
-        <Label htmlFor="question">Question</Label>
-        <Input
-          id="question"
-          value={formData.question}
-          className="col-span-4"
-          onChange={(e) =>
-            setFormData({ ...formData, question: e.target.value })
-          }
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem className="grid grid-cols-5 mt-4">
+              <FormLabel>Title</FormLabel>
+              <div className="col-span-4">
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
         />
-      </div>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button type="button" variant="secondary">
-            Close
-          </Button>
-        </DialogClose>
-        <Button type="submit" onClick={validate}>
-          Submit
-        </Button>
-      </DialogFooter>
-    </>
+        <FormField
+          control={form.control}
+          name="question"
+          render={({ field }) => (
+            <FormItem className="grid grid-cols-5 mt-4">
+              <FormLabel>Question</FormLabel>
+              <div className="col-span-4">
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
+        <DialogFooter className="mt-8">
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+          <Button type="submit">Submit</Button>
+        </DialogFooter>
+      </form>
+    </Form>
   )
 }
 

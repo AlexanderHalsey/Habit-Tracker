@@ -1,85 +1,97 @@
-import { useState } from "react"
+import { TrackHabitFormData, trackHabitFormSchema } from "./schemas"
 
-import { useHabitStore } from "@/store"
-
-import { getTrackHabitFormSchema, TrackHabitFormData } from "./schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/Button"
 import { Checkbox } from "@/components/ui/Checkbox"
-import { Label } from "@/components/ui/Label"
 import {
   DialogClose,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/Form"
+
+import { Habit } from "@/models"
 
 function HabitTrackerForm({
+  habits,
   close,
   trackHabits,
 }: {
+  habits: Habit[]
   close: () => void
   trackHabits: (formData: TrackHabitFormData) => Promise<void>
 }) {
-  const habitStore = useHabitStore()
+  const form = useForm<TrackHabitFormData>({
+    resolver: zodResolver(trackHabitFormSchema),
+    defaultValues: {
+      entries: habits.map((habit) => ({
+        habitId: habit.id,
+        completed: false,
+      })),
+    },
+  })
 
-  const [formData, setFormData] = useState<
-    { habitId: number; completed: boolean }[]
-  >(
-    habitStore.habits.map((habit) => ({
-      habitId: habit.id,
-      completed: false,
-    }))
-  )
-
-  const validate = async () => {
-    const result = getTrackHabitFormSchema(habitStore.habits.length).safeParse(
-      formData
-    )
-    if (!result.success) {
-      console.error(result.error)
-      return null
-    }
-
-    await trackHabits(result.data)
+  const onSubmit = async (formData: TrackHabitFormData) => {
+    await trackHabits(formData)
     close()
   }
 
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Track Habits</DialogTitle>
-      </DialogHeader>
-      <div className="flex flex-col gap-4 border border-red-500 w-max">
-        {habitStore.habits.map((habit, index) => (
-          <div
-            key={habit.id}
-            className="flex items-center gap-4 justify-between border border-green-500"
-          >
-            <Label htmlFor={`habit-${habit.id}`}>{habit.question}</Label>
-            <Checkbox
-              checked={formData[index].completed}
-              id={`habit-${habit.id}`}
-              onCheckedChange={(checked) => {
-                const newFormData = [...formData]
-                newFormData[index].completed = !!checked
-                setFormData(newFormData)
-              }}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <DialogHeader>
+          <DialogTitle>Track Habits</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>
+          Select the habits you have completed today.
+        </DialogDescription>
+        <div className="flex flex-col gap-4 w-max my-8">
+          {habits.map((habit, index) => (
+            <FormField
+              key={habit.id}
+              control={form.control}
+              name={`entries.${index}`}
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-4 justify-between">
+                  <FormLabel>{habit.question}</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value.completed}
+                      onCheckedChange={(checked) => {
+                        field.onChange({
+                          ...field.value,
+                          completed: !!checked,
+                        })
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        ))}
-      </div>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button type="button" variant="secondary">
-            Close
-          </Button>
-        </DialogClose>
-        <Button type="submit" onClick={validate}>
-          Submit
-        </Button>
-      </DialogFooter>
-    </>
+          ))}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+          <Button type="submit">Submit</Button>
+        </DialogFooter>
+      </form>
+    </Form>
   )
 }
 
