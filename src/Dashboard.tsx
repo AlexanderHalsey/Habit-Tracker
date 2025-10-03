@@ -4,12 +4,11 @@ import { useHabitStore, useHabitEntryStore } from "@/store"
 
 import { getFirstTrackedDayOfMonth } from "@/lib/utils"
 
-import HabitForm from "@/forms/HabitForm"
-import HabitTrackerForm from "@/forms/HabitTrackerForm"
+import HabitFormDialog from "@/forms/HabitFormDialog"
+import HabitTrackerFormDialog from "@/forms/HabitTrackerFormDialog"
 
 import { HabitTrackerCalendar } from "@/components/HabitTrackerCalendar"
 import { Button } from "@/components/ui/Button"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/Dialog"
 import { Separator } from "@/components/ui/Separator"
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
@@ -19,7 +18,9 @@ import {
   TrackHabitFormData,
   UpdateHabitFormData,
 } from "./forms/schemas"
+
 import { Habit, HabitCompletionRate, HabitWithCompletionRate } from "@/models"
+
 function Dashboard({
   trackHabits,
   createHabit,
@@ -69,10 +70,6 @@ function Dashboard({
     setCurrentHabit(habitsWithCompletionRates[newIndex])
   }
 
-  const [openDialog1, setOpenDialog1] = useState(false)
-  const [openDialog2, setOpenDialog2] = useState(false)
-  const [openDialog3, setOpenDialog3] = useState(false)
-
   return (
     <div className="h-screen flex items-center gap-4 p-4">
       <div className="gap-6 flex flex-col items-center justify-between h-full w-full">
@@ -94,18 +91,11 @@ function Dashboard({
                   }`}
                 >
                   <div className="flex items-center justify-center p-1 me-12">
-                    <Dialog open={openDialog1} onOpenChange={setOpenDialog1}>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost">{habit.title}</Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <HabitForm
-                          habit={habit}
-                          submit={updateHabit}
-                          close={() => setOpenDialog1(false)}
-                        />
-                      </DialogContent>
-                    </Dialog>
+                    <HabitFormDialog
+                      habit={habit}
+                      submit={updateHabit}
+                      trigger={<Button variant="ghost">{habit.title}</Button>}
+                    />
                   </div>
                   {!!habit.completionRate.total && (
                     <strong>
@@ -118,17 +108,10 @@ function Dashboard({
           </>
         )}
         <div className="mt-2 flex justify-center items-center">
-          <Dialog open={openDialog2} onOpenChange={setOpenDialog2}>
-            <DialogTrigger asChild>
-              <Button variant="outline">Create new habit</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <HabitForm
-                close={() => setOpenDialog2(false)}
-                submit={createHabit}
-              />
-            </DialogContent>
-          </Dialog>
+          <HabitFormDialog
+            submit={createHabit}
+            trigger={<Button variant="outline">Create a new habit</Button>}
+          />
         </div>
       </div>
 
@@ -168,22 +151,17 @@ function Dashboard({
               <p>And another p</p>
             </div>
 
-            <Dialog open={openDialog3} onOpenChange={setOpenDialog3}>
-              <DialogTrigger asChild>
+            <HabitTrackerFormDialog
+              habits={habitStore.habits}
+              trackHabits={trackHabits}
+              trigger={
                 <Button
                   className={habitEntryStore.isTrackedToday ? "invisible" : ""}
                 >
                   Track habits
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <HabitTrackerForm
-                  habits={habitStore.habits}
-                  close={() => setOpenDialog3(false)}
-                  trackHabits={trackHabits}
-                />
-              </DialogContent>
-            </Dialog>
+              }
+            />
           </div>
         </>
       )}
