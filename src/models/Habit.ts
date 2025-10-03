@@ -11,7 +11,3 @@ export type HabitCompletionRate = {
   completed: number
   total: number
 }
-
-export type HabitWithCompletionRate = Habit & {
-  completionRate: HabitCompletionRate
-}

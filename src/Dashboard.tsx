@@ -11,7 +11,7 @@ import { HabitTrackerCalendar } from "@/components/HabitTrackerCalendar"
 import { Button } from "@/components/ui/Button"
 import { Separator } from "@/components/ui/Separator"
 
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { PenBoxIcon } from "lucide-react"
 
 import {
   CreateHabitFormData,
@@ -19,7 +19,7 @@ import {
   UpdateHabitFormData,
 } from "./forms/schemas"
 
-import { Habit, HabitCompletionRate, HabitWithCompletionRate } from "@/models"
+import { Habit, HabitCompletionRate } from "@/models"
 
 function Dashboard({
   trackHabits,
@@ -48,70 +48,45 @@ function Dashboard({
     return { completed, total }
   }
 
-  const habitsWithCompletionRates: HabitWithCompletionRate[] =
-    habitStore.habits.map((habit) => ({
-      ...habit,
-      completionRate: getMonthlyCompletionRate(habit),
-    }))
-
-  const [currentHabit, setCurrentHabit] = useState<HabitWithCompletionRate>(
-    habitsWithCompletionRates[0]
-  )
-
-  const rotateCurrentHabit = (increment: 1 | -1) => {
-    if (!currentHabit) {
-      throw new Error("No current habit to rotate from")
-    }
-    const newIndex =
-      (habitsWithCompletionRates.length +
-        habitsWithCompletionRates.findIndex((h) => h.id === currentHabit.id) +
-        increment) %
-      habitsWithCompletionRates.length
-    setCurrentHabit(habitsWithCompletionRates[newIndex])
-  }
+  const [currentHabit, setCurrentHabit] = useState<Habit>(habitStore.habits[0])
 
   return (
-    <div className="h-screen flex items-center gap-4 p-4">
-      <div className="gap-6 flex flex-col items-center justify-between h-full w-full">
-        {habitsWithCompletionRates.length > 0 && (
-          <>
-            <h3 className="h-10 text-lg font-medium flex items-center justify-center">
-              Habits for{" "}
-              {new Intl.DateTimeFormat("en-GB", {
-                month: "long",
-              }).format(new Date())}
-            </h3>
-
-            <div className="grow w-full">
-              {habitsWithCompletionRates.map((habit) => (
-                <div
-                  key={habit.id}
-                  className={`flex items-center justify-between pe-4 rounded-md ${
-                    currentHabit?.id === habit.id ? "bg-primary text-white" : ""
-                  }`}
+    <div className="h-screen flex items-center justify-center gap-4 p-4">
+      <div className="flex flex-col items-center justify-center h-full">
+        {habitStore.habits.length > 0 && (
+          <div className="grow w-full flex flex-col gap-1">
+            {habitStore.habits.map((habit) => (
+              <div
+                key={habit.id}
+                className={`flex items-center justify-between rounded-lg ${
+                  currentHabit?.id === habit.id ? "bg-primary text-white" : ""
+                }`}
+              >
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  disabled={currentHabit?.id === habit.id}
+                  onClick={() => setCurrentHabit(habit)}
                 >
-                  <div className="flex items-center justify-center p-1 me-12">
-                    <HabitFormDialog
-                      habit={habit}
-                      submit={updateHabit}
-                      trigger={<Button variant="ghost">{habit.title}</Button>}
-                    />
-                  </div>
-                  {!!habit.completionRate.total && (
-                    <strong>
-                      {`${habit.completionRate.completed} / ${habit.completionRate.total}`}
-                    </strong>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
+                  {habit.title}
+                </Button>
+              </div>
+            ))}
+          </div>
         )}
-        <div className="mt-2 flex justify-center items-center">
+        <Separator className="my-2" />
+        <div className="flex flex-col justify-center items-center gap-1">
           <HabitFormDialog
             submit={createHabit}
             trigger={<Button variant="outline">Create a new habit</Button>}
           />
+          {currentHabit && !habitEntryStore.isTrackedToday && (
+            <HabitTrackerFormDialog
+              habits={habitStore.habits}
+              trackHabits={trackHabits}
+              trigger={<Button className="w-full">Track habits</Button>}
+            />
+          )}
         </div>
       </div>
 
@@ -119,31 +94,16 @@ function Dashboard({
         <>
           <Separator orientation="vertical" />
           <div className="flex flex-col items-center gap-6 h-full w-full justify-between">
-            <div className="w-80 flex justify-between items-center gap-4">
-              {habitStore.habits.length > 1 && (
-                <Button variant="ghost" onClick={() => rotateCurrentHabit(-1)}>
-                  <ChevronLeftIcon />
-                </Button>
-              )}
-              <div className="grow flex gap-4 justify-center">
-                <p>{currentHabit.title}</p>
-                {!!currentHabit.completionRate.total && (
-                  <strong>
-                    {`${currentHabit.completionRate.completed} / ${currentHabit.completionRate.total}`}
-                  </strong>
-                )}
-              </div>
-              {habitStore.habits.length > 1 && (
-                <Button variant="ghost" onClick={() => rotateCurrentHabit(1)}>
-                  <ChevronRightIcon />
-                </Button>
-              )}
-            </div>
-            <div>
-              <HabitTrackerCalendar
-                habitEntries={habitEntryStore.habitEntries.filter(
-                  (entry) => entry.habitId === currentHabit.id
-                )}
+            <div className="flex items-center gap-1">
+              <h3 className="text-xl font-medium">{currentHabit.title}</h3>
+              <HabitFormDialog
+                habit={currentHabit}
+                submit={updateHabit}
+                trigger={
+                  <Button variant="ghost" size="icon" className="ml-1">
+                    <PenBoxIcon size="1" />
+                  </Button>
+                }
               />
             </div>
             <div>
@@ -151,17 +111,18 @@ function Dashboard({
               <p>And another p</p>
             </div>
 
-            <HabitTrackerFormDialog
-              habits={habitStore.habits}
-              trackHabits={trackHabits}
-              trigger={
-                <Button
-                  className={habitEntryStore.isTrackedToday ? "invisible" : ""}
-                >
-                  Track habits
-                </Button>
-              }
-            />
+            {/* {!!currentHabit.completionRate.total && (
+                  <strong>
+                    {`${currentHabit.completionRate.completed} / ${currentHabit.completionRate.total}`}
+                  </strong>
+                )} */}
+            <div>
+              <HabitTrackerCalendar
+                habitEntries={habitEntryStore.habitEntries.filter(
+                  (entry) => entry.habitId === currentHabit.id
+                )}
+              />
+            </div>
           </div>
         </>
       )}
