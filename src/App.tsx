@@ -2,7 +2,11 @@ import { useEffect, useState } from "react"
 
 import Dashboard from "./Dashboard"
 
-import { useHabitStore, useHabitEntryStore } from "@/store"
+import {
+  useHabitStore,
+  useHabitEntryStore,
+  useAppleCalendarEventStore,
+} from "@/store"
 
 import {
   CreateHabitFormData,
@@ -11,6 +15,7 @@ import {
 } from "./forms/schemas"
 
 function App() {
+  const appleCalendarEventStore = useAppleCalendarEventStore()
   const habitStore = useHabitStore()
   const habitEntryStore = useHabitEntryStore()
 
@@ -38,6 +43,11 @@ function App() {
     const fetchData = async () => {
       await habitStore.fetchHabits()
       await habitEntryStore.fetchHabitEntries()
+      const appleCalendarFeatureIsEnabled =
+        await appleCalendarEventStore.fetchFeatureStatus()
+      if (appleCalendarFeatureIsEnabled) {
+        await appleCalendarEventStore.fetchCalendarEvents()
+      }
       setLoading(false)
     }
     fetchData()

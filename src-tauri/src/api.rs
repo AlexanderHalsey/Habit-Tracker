@@ -2,9 +2,12 @@ use crate::{
     AppConfig, CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem,
     UpdateHabitRequest,
 };
-use chrono::{DateTime, Utc};
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
-use rusqlite::{params, Connection, Result, Row};
+use chrono::{serde::ts_seconds, DateTime, Utc};
+use rusqlite::{
+    params,
+    types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
+    Connection, Error, Result, Row, ToSql,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -35,10 +38,35 @@ impl ToSql for HabitType {
     }
 }
 
+#[derive(Debug, PartialEq, Deserialize, Serialize, Type)]
+pub struct EventIds {
+    pub values: Vec<String>,
+}
+
+impl FromSql for EventIds {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let json_str = value.as_str_or_null()?;
+        let values: Vec<String> = match json_str {
+            Some(v) => serde_json::from_str(v).map_err(|_| FromSqlError::InvalidType)?,
+            None => vec![],
+        };
+        Ok(EventIds { values })
+    }
+}
+
+impl ToSql for EventIds {
+    fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
+        let json = serde_json::to_string(&self.values)
+            .map_err(|e| Error::ToSqlConversionFailure(Box::new(e)))?;
+        Ok(ToSqlOutput::from(json))
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Type)]
 pub struct Habit {
     pub id: i64,
     pub habit_type: HabitType,
+    pub event_ids: EventIds,
     pub title: String,
     pub question: String,
 }
@@ -48,6 +76,7 @@ impl Habit {
         Ok(Habit {
             id: row.get("id")?,
             habit_type: row.get("habitType")?,
+            event_ids: row.get("eventIds")?,
             title: row.get("title")?,
             question: row.get("question")?,
         })
@@ -73,6 +102,27 @@ impl HabitEntry {
     }
 }
 
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Type)]
+pub struct AppleCalendarEvent {
+    pub id: String,
+    pub name: String,
+    #[serde(deserialize_with = "ts_seconds::deserialize")]
+    pub start_date: DateTime<Utc>,
+    pub recurrence: String,
+}
+
+impl AppleCalendarEvent {
+    pub fn from_row(row: &Row) -> Result<Self> {
+        Ok(AppleCalendarEvent {
+            id: row.get("id")?,
+            name: row.get("name")?,
+            start_date: row.get("startDate")?,
+            recurrence: row.get("recurrence")?,
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct HabitTrackerService {
     conn: Connection,
@@ -87,6 +137,7 @@ impl HabitTrackerService {
             "CREATE TABLE IF NOT EXISTS habit (
             id INTEGER PRIMARY KEY,
             habitType TEXT CHECK(habitType IN('daily', 'appleCalendar')) NOT NULL DEFAULT 'daily',
+            eventIds TEXT NULL,
             title TEXT NOT NULL,
             question TEXT NOT NULL
         )",
@@ -102,6 +153,17 @@ impl HabitTrackerService {
         )",
             (),
         )?;
+        #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+        transaction.execute(
+            "CREATE TABLE IF NOT EXISTS appleCalendarEvent (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            startDate REAL NOT NULL,
+            endDate REAL NULL,
+            recurrence TEXT NOT NULL
+        )",
+            (),
+        )?;
         transaction.commit()?;
 
         Ok(HabitTrackerService { conn })
@@ -109,8 +171,13 @@ impl HabitTrackerService {
 
     pub fn create_habit(&self, request: CreateHabitRequest) -> Result<Habit> {
         self.conn.execute(
-            "INSERT INTO habit (habitType, title, question) VALUES (?1, ?2, ?3)",
-            params![request.habit_type, request.title, request.question],
+            "INSERT INTO habit (habitType, eventIds, title, question) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                request.habit_type,
+                request.event_ids,
+                request.title,
+                request.question
+            ],
         )?;
         let id = self.conn.last_insert_rowid();
         self.conn.query_row(
@@ -134,9 +201,10 @@ impl HabitTrackerService {
 
     pub fn update_habit(&self, request: UpdateHabitRequest) -> Result<Habit> {
         self.conn.execute(
-            "UPDATE habit SET habitType = ?1, title = ?2, question = ?3 WHERE id = ?4",
+            "UPDATE habit SET habitType = ?1, eventIds = ?2, title = ?3, question = ?4 WHERE id = ?5",
             params![
                 request.habit_type,
+                request.event_ids,
                 request.title,
                 request.question,
                 request.id
@@ -173,14 +241,51 @@ impl HabitTrackerService {
             statement.query_map(params![request.data.len()], HabitEntry::from_row)?;
         habit_entry_iter.collect::<Result<Vec<_>>>()
     }
+
+    #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+    pub fn get_apple_calendar_events(&self) -> Result<Vec<AppleCalendarEvent>> {
+        let mut statement = self.conn.prepare("SELECT * FROM appleCalendarEvent")?;
+        let apple_calendar_event_iter = statement.query_map([], AppleCalendarEvent::from_row)?;
+        apple_calendar_event_iter.collect::<Result<Vec<_>>>()
+    }
+
+    #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+    pub fn reset_apple_calendar_events(
+        &mut self,
+        request: Vec<AppleCalendarEvent>,
+    ) -> Result<Vec<AppleCalendarEvent>> {
+        let transaction = self.conn.transaction()?;
+        // squash and replace all events
+        transaction.execute("DELETE FROM appleCalendarEvent", [])?;
+        {
+            let mut statement = transaction.prepare(
+                "INSERT INTO appleCalendarEvent (id, name, startDate, recurrence) VALUES (?1, ?2, ?3, ?4)",
+            )?;
+            for AppleCalendarEvent {
+                id,
+                name,
+                start_date,
+                recurrence,
+            } in &request
+            {
+                statement.execute(params![id, name, start_date, recurrence])?;
+            }
+        }
+        transaction.commit()?;
+        let mut statement = self.conn.prepare("SELECT * FROM appleCalendarEvent")?;
+        let apple_calendar_events_iter = statement.query_map([], AppleCalendarEvent::from_row)?;
+        apple_calendar_events_iter.collect::<Result<Vec<_>>>()
+    }
 }
 
 #[cfg(test)]
 pub mod unit_tests {
-    use crate::api::{Habit, HabitEntry, HabitTrackerService, HabitType};
+    use crate::api::{
+        AppleCalendarEvent, EventIds, Habit, HabitEntry, HabitTrackerService, HabitType,
+    };
     use crate::get_app_config;
     use chrono::Utc;
-    use rusqlite::types::{FromSql, FromSqlError, ToSqlOutput};
+    use rusqlite::types::{FromSql, FromSqlError, ToSqlOutput, Value, ValueRef};
     use rusqlite::{params, Connection, Result, ToSql};
     use std::error::Error;
 
@@ -205,16 +310,55 @@ pub mod unit_tests {
         Ok(())
     }
 
+    #[test]
+    fn test_event_ids() -> Result<()> {
+        // column result method
+        assert_eq!(
+            EventIds::column_result("[\"1\", \"2\", \"3\"]".into())?,
+            EventIds {
+                values: vec!["1".to_owned(), "2".to_owned(), "3".to_owned()]
+            }
+        );
+        assert_eq!(
+            EventIds::column_result("invalid json".into()).unwrap_err(),
+            FromSqlError::InvalidType
+        );
+        // to sql method
+        let event_ids = EventIds {
+            values: Vec::from(["1".to_owned(), "2".to_owned()]),
+        };
+        let sql_output = event_ids.to_sql()?;
+        match sql_output {
+            ToSqlOutput::Owned(Value::Text(text)) => {
+                assert_eq!(text, "[\"1\",\"2\"]")
+            }
+            ToSqlOutput::Borrowed(ValueRef::Text(bytes)) => {
+                let text = std::str::from_utf8(bytes)?;
+                assert_eq!(text, "[\"1\",\"2\"]");
+            }
+            _ => panic!("Expected text output"),
+        };
+        Ok(())
+    }
+
     fn create_habit(db_connection: &Connection) -> Result<Habit> {
         let fixture = Habit {
             id: 1,
             habit_type: HabitType::AppleCalendar,
+            event_ids: EventIds {
+                values: vec!["event_id".into()],
+            },
             title: "some title".into(),
             question: "some question".into(),
         };
         db_connection.execute(
-            "INSERT INTO habit (habitType, title, question) VALUES (?1, ?2, ?3)",
-            params![fixture.habit_type, fixture.title, fixture.question,],
+            "INSERT INTO habit (habitType, eventIds, title, question) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                fixture.habit_type,
+                fixture.event_ids,
+                fixture.title,
+                fixture.question,
+            ],
         )?;
         Ok(fixture)
     }
@@ -259,6 +403,30 @@ pub mod unit_tests {
             .unwrap()?;
 
         assert_eq!(queried_habit_entry, habit_entry_fixture);
+        Ok(())
+    }
+
+    #[test]
+    fn test_apple_calendar_event_from_row() -> Result<(), Box<dyn Error>> {
+        let app_config = get_app_config("test")?;
+        let db_connection = HabitTrackerService::build(app_config)?.conn;
+        let fixture = AppleCalendarEvent {
+            id: "appleCalendarEventId".into(),
+            name: "calendarEventName".into(),
+            start_date: Utc::now(),
+            recurrence: "recurrence".into(),
+        };
+        db_connection.execute(
+            "INSERT INTO appleCalendarEvent (id, name, startDate, recurrence) VALUES (?1, ?2, ?3, ?4)",
+            params![fixture.id, fixture.name, fixture.start_date, fixture.recurrence],
+        )?;
+        let mut statement = db_connection.prepare("SELECT * FROM appleCalendarEvent")?;
+        let queried_apple_calendar_event = statement
+            .query_map([], AppleCalendarEvent::from_row)?
+            .next()
+            .unwrap()?;
+
+        assert_eq!(queried_apple_calendar_event, fixture);
         Ok(())
     }
 }

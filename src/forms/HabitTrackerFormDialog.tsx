@@ -66,35 +66,39 @@ function HabitTrackerForm({
             <DialogDescription>
               Select the habits you have completed today.
             </DialogDescription>
-            <div className="flex flex-col gap-4 w-max my-8">
-              {habits.map((habit, index) => (
-                <FormField
-                  key={habit.id}
-                  control={form.control}
-                  name={`entries.${index}`}
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-4 justify-between">
-                      <FormLabel>{habit.question}</FormLabel>
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value.completed}
-                          onCheckedChange={(checked) => {
-                            field.onChange({
-                              ...field.value,
-                              completed: !!checked,
-                            })
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+            <div className="flex justify-center">
+              <div className="flex flex-col gap-4 w-max my-8">
+                {habits.map((habit, index) => (
+                  <FormField
+                    key={habit.id}
+                    control={form.control}
+                    name={`entries.${index}`}
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-4 justify-between">
+                        <FormLabel className="w-full">
+                          {habit.question}
+                        </FormLabel>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value.completed}
+                            onCheckedChange={(checked) => {
+                              field.onChange({
+                                ...field.value,
+                                completed: !!checked,
+                              })
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage className="absolute" />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="secondary">
+                <Button type="button" variant="outline">
                   Close
                 </Button>
               </DialogClose>

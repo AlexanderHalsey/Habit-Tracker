@@ -1,20 +1,34 @@
 import z from "zod"
 
-export const habitFormSchema = z.object({
-  habitType: z.enum(["Daily", "AppleCalendar"], {
-    error: "Required",
-  }),
-  title: z
-    .string({ error: "Required" })
-    .min(2, { error: "Too short" })
-    .max(100),
-  question: z
-    .string({ error: "Required" })
-    .min(2, { error: "Too short" })
-    .max(100),
-})
+export const habitFormSchema = z
+  .object({
+    habitType: z.enum(["Daily", "AppleCalendar"], {
+      error: "Required",
+    }),
+    eventId: z.string().optional(),
+    title: z
+      .string({ error: "Required" })
+      .min(2, { error: "Too short" })
+      .max(100),
+    question: z
+      .string({ error: "Required" })
+      .min(2, { error: "Too short" })
+      .max(100),
+  })
+  .superRefine((data, ctx) => {
+    if (data.habitType === "AppleCalendar" && !data.eventId) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Required",
+        path: ["eventId"],
+      })
+    }
+  })
 
-export type HabitFormData = z.infer<typeof habitFormSchema>
+export type HabitFormDataInput = z.infer<typeof habitFormSchema>
+export type HabitFormData = Omit<HabitFormDataInput, "eventId"> & {
+  eventIds: string[]
+}
 export type CreateHabitFormData = HabitFormData
 export type UpdateHabitFormData = HabitFormData & { id: number }
 

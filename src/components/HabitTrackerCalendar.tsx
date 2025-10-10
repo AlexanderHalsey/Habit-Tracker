@@ -10,12 +10,14 @@ import { HabitEntry } from "@/models"
 function HabitTrackerCalendar({
   habitEntries,
   firstTrackedDay,
-  currentStartDate,
+  activeStartDate,
+  interval,
   onMonthChange,
 }: {
   habitEntries: HabitEntry[]
-  firstTrackedDay: Date | undefined
-  currentStartDate: Date
+  firstTrackedDay: Date
+  activeStartDate: Date
+  interval: Date[]
   onMonthChange?: (date: Date) => void
 }) {
   return (
@@ -25,12 +27,12 @@ function HabitTrackerCalendar({
       prev2Label={null}
       next2Label={null}
       prevLabel={
-        firstTrackedDay && !isSameMonth(currentStartDate, firstTrackedDay) ? (
+        firstTrackedDay && !isSameMonth(activeStartDate, firstTrackedDay) ? (
           <ChevronLeftIcon size="16" />
         ) : null
       }
       nextLabel={
-        !isSameMonth(currentStartDate, new Date()) ? (
+        !isSameMonth(activeStartDate, new Date()) ? (
           <ChevronRightIcon size="16" />
         ) : null
       }
@@ -46,11 +48,14 @@ function HabitTrackerCalendar({
           <div
             className={cn(
               "absolute top-1/7 left-1/7 size-8 rounded-full flex items-center justify-center",
+              isSameDay(date, new Date()) && "outline-2 outline-gray-500",
               !!habitEntry
                 ? habitEntry.completed
-                  ? "text-white bg-primary"
-                  : "text-white bg-secondary"
-                : "bg-accent"
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-white"
+                : interval.some((d) => isSameDay(d, date))
+                ? "bg-accent"
+                : "bg-white"
             )}
           >
             {date.getDate()}

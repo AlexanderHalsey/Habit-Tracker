@@ -25,5 +25,5 @@ dist-ssr
 
 src-tauri/habits.db
 src-tauri/habits.db-journal
-src-tauri/tests/*.sql
+src-tauri/sql
 TODO.md

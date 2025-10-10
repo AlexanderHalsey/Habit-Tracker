@@ -1,18 +1,23 @@
 import { invoke } from "@tauri-apps/api/core"
 import {
+  convertDtoToAppleCalendarEvent,
   convertDtoToHabit,
   convertDtoToHabitEntry,
   convertFormDataToCreateHabitRequest,
   convertFormDataToInsertHabitEntriesRequest,
   convertFormDataToUpdateHabitRequest,
 } from "./converters"
-import { Habit as HabitDto, HabitEntry as HabitEntryDto } from "./dtos"
+import {
+  AppleCalendarEvent as AppleCalendarEventDto,
+  Habit as HabitDto,
+  HabitEntry as HabitEntryDto,
+} from "./dtos"
 import {
   CreateHabitFormData,
   TrackHabitFormData,
   UpdateHabitFormData,
 } from "../forms/schemas"
-import { Habit, HabitEntry } from "../models"
+import { AppleCalendarEvent, Habit, HabitEntry } from "../models"
 
 export const getHabits = async (): Promise<Habit[]> => {
   const response = await invoke<HabitDto[]>("get_habits")
@@ -48,4 +53,26 @@ export const postHabitEntries = async (
   return await invoke<Boolean>("insert_habit_entries", {
     request: convertFormDataToInsertHabitEntriesRequest(formData),
   })
+}
+
+export const getAppleCalendarFeatureStatus = async (): Promise<boolean> => {
+  return await invoke<boolean>("get_apple_calendar_feature_status")
+}
+
+export const getAppleCalendarEvents = async (): Promise<
+  AppleCalendarEvent[]
+> => {
+  const response = await invoke<AppleCalendarEventDto[]>(
+    "get_apple_calendar_events"
+  )
+  return response.map(convertDtoToAppleCalendarEvent)
+}
+
+export const syncAppleCalendarEvents = async (): Promise<
+  AppleCalendarEvent[]
+> => {
+  const response = await invoke<AppleCalendarEventDto[]>(
+    "sync_apple_calendar_events"
+  )
+  return response.map(convertDtoToAppleCalendarEvent)
 }

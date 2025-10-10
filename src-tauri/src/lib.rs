@@ -2,8 +2,10 @@ pub mod api;
 pub mod app_config;
 pub mod requests;
 
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+use crate::api::AppleCalendarEvent;
 use crate::api::HabitEntry;
-pub use api::{Habit, HabitTrackerService, HabitType};
+pub use api::{Habit, HabitTrackerService};
 pub use app_config::{get_app_config, AppConfig};
 pub use requests::{
     CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem, UpdateHabitRequest,
@@ -14,6 +16,7 @@ use specta::{
 };
 use std::{error::Error, sync::Mutex};
 use tauri::State;
+use tokio::process::Command;
 
 #[tauri::command]
 fn get_habits(state: State<Mutex<HabitTrackerService>>) -> Result<Vec<Habit>, String> {
@@ -64,6 +67,41 @@ fn insert_habit_entries(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_apple_calendar_feature_status() -> bool {
+    cfg!(target_os = "macos") && cfg!(feature = "apple_calendar")
+}
+
+#[tauri::command]
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+fn get_apple_calendar_events(
+    state: State<Mutex<HabitTrackerService>>,
+) -> Result<Vec<AppleCalendarEvent>, String> {
+    let habit_tracker_service = state.lock().unwrap();
+    habit_tracker_service
+        .get_apple_calendar_events()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+async fn sync_apple_calendar_events(
+    state: State<'_, Mutex<HabitTrackerService>>,
+) -> Result<Vec<AppleCalendarEvent>, String> {
+    let output_utf8 = Command::new("osascript")
+        .args(["./applescripts/get_recurring_calendar_events.applescript"])
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let request = serde_json::from_slice::<Vec<AppleCalendarEvent>>(&output_utf8.stdout)
+        .map_err(|e| e.to_string())?;
+    let mut habit_tracker_service = state.lock().unwrap();
+    habit_tracker_service
+        .reset_apple_calendar_events(request)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn Error>> {
     export::ts_with_cfg(
@@ -84,7 +122,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             get_habit_entries,
             create_habit,
             update_habit,
-            insert_habit_entries
+            insert_habit_entries,
+            get_apple_calendar_feature_status,
+            #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+            get_apple_calendar_events,
+            #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+            sync_apple_calendar_events,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
