@@ -6,16 +6,18 @@ pub mod requests;
 use crate::api::AppleCalendarEvent;
 use crate::api::HabitEntry;
 pub use api::{Habit, HabitTrackerService};
-pub use app_config::{get_app_config, AppConfig};
+pub use app_config::{get_app_config, get_test_app_config, AppConfig};
 pub use requests::{
     CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem, UpdateHabitRequest,
 };
+#[cfg(debug_assertions)]
 use specta::{
     export,
     ts::{BigIntExportBehavior, ExportConfiguration},
 };
 use std::{error::Error, sync::Mutex};
 use tauri::State;
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
 use tokio::process::Command;
 
 #[tauri::command]
@@ -83,35 +85,49 @@ fn get_apple_calendar_events(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
 #[cfg(all(target_os = "macos", feature = "apple_calendar"))]
-async fn sync_apple_calendar_events(
-    state: State<'_, Mutex<HabitTrackerService>>,
+pub async fn sync_apple_calendar_events_impl(
+    service: &Mutex<HabitTrackerService>,
 ) -> Result<Vec<AppleCalendarEvent>, String> {
+    // Embed the AppleScript content in the binary
+    let applescript_content =
+        include_str!("../../scripts/get_recurring_calendar_events.applescript");
+
     let output_utf8 = Command::new("osascript")
-        .args(["./applescripts/get_recurring_calendar_events.applescript"])
+        .args(["-e", applescript_content])
         .output()
         .await
         .map_err(|e| e.to_string())?;
 
     let request = serde_json::from_slice::<Vec<AppleCalendarEvent>>(&output_utf8.stdout)
         .map_err(|e| e.to_string())?;
-    let mut habit_tracker_service = state.lock().unwrap();
+
+    let mut habit_tracker_service = service.lock().unwrap();
     habit_tracker_service
         .reset_apple_calendar_events(request)
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+async fn sync_apple_calendar_events(
+    state: State<'_, Mutex<HabitTrackerService>>,
+) -> Result<Vec<AppleCalendarEvent>, String> {
+    sync_apple_calendar_events_impl(&state).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn Error>> {
-    export::ts_with_cfg(
-        "../src/api/dtos.ts",
-        &ExportConfiguration::default().bigint(BigIntExportBehavior::Number),
-    )
-    .unwrap();
+    #[cfg(debug_assertions)]
+    {
+        export::ts_with_cfg(
+            "../src/api/dtos.ts",
+            &ExportConfiguration::default().bigint(BigIntExportBehavior::Number),
+        )
+        .unwrap();
+    }
 
-    let env = std::env::var("APP_ENV").unwrap_or("dev".into());
-    let app_config = get_app_config(&env)?;
+    let app_config = get_app_config()?;
     let habit_tracker_service = HabitTrackerService::build(app_config)?;
 
     tauri::Builder::default()

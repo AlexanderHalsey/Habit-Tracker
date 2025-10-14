@@ -1,7 +1,7 @@
 use chrono::Utc;
 use habit_tracker_lib::{
     api::{AppleCalendarEvent, EventIds, HabitType},
-    app_config::get_app_config,
+    app_config::get_test_app_config,
     CreateHabitRequest, Habit, HabitTrackerService, InsertHabitEntriesRequest,
     InsertHabitEntryItem, UpdateHabitRequest,
 };
@@ -9,7 +9,7 @@ use rusqlite::Result;
 use std::error::Error;
 
 fn mock_habit_tracker_service() -> Result<HabitTrackerService, Box<dyn Error>> {
-    let app_config = get_app_config("test")?;
+    let app_config = get_test_app_config()?;
     Ok(HabitTrackerService::build(app_config)?)
 }
 

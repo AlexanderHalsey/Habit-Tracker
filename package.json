@@ -4,8 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run tauri dev -- --features apple_calendar",
+    "dev:frontend": "vite",
+    "build:frontend": "tsc && vite build",
+    "build:release": "npm run tauri build -- --features apple_calendar",
+    "build:release-basic": "npm run tauri build",
+    "sync:build": "cd src-tauri && cargo build --release --bin habit-sync --features apple_calendar",
+    "sync:test": "cd src-tauri && cargo run --bin habit-sync --features apple_calendar",
+    "sync:run": "src-tauri/target/release/habit-sync",
     "preview": "vite preview",
     "tauri": "tauri"
   },

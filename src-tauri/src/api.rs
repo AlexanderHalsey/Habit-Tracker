@@ -2,7 +2,9 @@ use crate::{
     AppConfig, CreateHabitRequest, InsertHabitEntriesRequest, InsertHabitEntryItem,
     UpdateHabitRequest,
 };
-use chrono::{serde::ts_seconds, DateTime, Utc};
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
+use chrono::serde::ts_seconds;
+use chrono::{DateTime, Utc};
 use rusqlite::{
     params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
@@ -112,6 +114,7 @@ pub struct AppleCalendarEvent {
     pub recurrence: String,
 }
 
+#[cfg(all(target_os = "macos", feature = "apple_calendar"))]
 impl AppleCalendarEvent {
     pub fn from_row(row: &Row) -> Result<Self> {
         Ok(AppleCalendarEvent {
@@ -283,7 +286,7 @@ pub mod unit_tests {
     use crate::api::{
         AppleCalendarEvent, EventIds, Habit, HabitEntry, HabitTrackerService, HabitType,
     };
-    use crate::get_app_config;
+    use crate::get_test_app_config;
     use chrono::Utc;
     use rusqlite::types::{FromSql, FromSqlError, ToSqlOutput, Value, ValueRef};
     use rusqlite::{params, Connection, Result, ToSql};
@@ -365,7 +368,7 @@ pub mod unit_tests {
 
     #[test]
     fn test_habit_from_row() -> Result<(), Box<dyn Error>> {
-        let app_config = get_app_config("test")?;
+        let app_config = get_test_app_config()?;
         let db_connection = HabitTrackerService::build(app_config)?.conn;
         let fixture = create_habit(&db_connection)?;
         let mut statement = db_connection.prepare("SELECT * FROM habit")?;
@@ -383,7 +386,7 @@ pub mod unit_tests {
             completed: true,
             date: Utc::now(),
         };
-        let app_config = get_app_config("test")?;
+        let app_config = get_test_app_config()?;
         let db_connection = HabitTrackerService::build(app_config)?.conn;
         // create habit to ensure a habit_id for entry
         create_habit(&db_connection)?;
@@ -408,7 +411,7 @@ pub mod unit_tests {
 
     #[test]
     fn test_apple_calendar_event_from_row() -> Result<(), Box<dyn Error>> {
-        let app_config = get_app_config("test")?;
+        let app_config = get_test_app_config()?;
         let db_connection = HabitTrackerService::build(app_config)?.conn;
         let fixture = AppleCalendarEvent {
             id: "appleCalendarEventId".into(),

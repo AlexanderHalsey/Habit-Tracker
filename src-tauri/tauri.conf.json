@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "habit_tracker",
+  "productName": "Habit Tracker",
   "version": "0.1.0",
-  "identifier": "com.alexanderhalsey.habit_tracker",
+  "identifier": "com.alexanderhalsey.habit-tracker",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run dev:frontend",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build:frontend",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "habit_tracker",
+        "title": "Habit Tracker",
         "width": 600,
         "height": 780
       }

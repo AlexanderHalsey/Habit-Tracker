@@ -1,5 +1,0 @@
-[dev]
-db_path = "./habits.db"
-
-[prod]
-db_path = ""
