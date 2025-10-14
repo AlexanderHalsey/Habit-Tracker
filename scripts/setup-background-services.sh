@@ -120,19 +120,6 @@ EOF
 
 # Load and enable the services
 echo "Loading services..."
-
-# Check if services are already loaded and unload them first
-if launchctl list | grep -q "com.habittracker.notify"; then
-    echo "Unloading existing notify service..."
-    launchctl unload "$LAUNCH_AGENTS_DIR/com.habittracker.notify.plist" 2>/dev/null || true
-fi
-
-if launchctl list | grep -q "com.habittracker.sync"; then
-    echo "Unloading existing sync service..."
-    launchctl unload "$LAUNCH_AGENTS_DIR/com.habittracker.sync.plist" 2>/dev/null || true
-fi
-
-# Load the services
 launchctl load "$LAUNCH_AGENTS_DIR/com.habittracker.notify.plist"
 launchctl load "$LAUNCH_AGENTS_DIR/com.habittracker.sync.plist"
 
