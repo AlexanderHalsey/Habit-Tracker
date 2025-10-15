@@ -100,14 +100,11 @@ Two automated services enhance the experience:
 
 - **Purpose**: Keeps Apple Calendar events synchronized daily
 - **Schedule**: 2 PM daily (configurable)
-- **File**: `scripts/com.habittracker.sync.plist`
 
 ### 2. Habit Reminder Notifications
 
 - **Purpose**: Daily reminders to track your habits
 - **Schedule**: 8 PM daily (configurable)
-- **Features**: Persistent notifications, click to open app, active 7 AM-11 PM only
-- **File**: `scripts/com.habittracker.notify.plist`
 
 ### Setup & Management
 
