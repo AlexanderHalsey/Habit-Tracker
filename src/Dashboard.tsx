@@ -58,9 +58,9 @@ function Dashboard({
       event.rule.options.until === null || event.rule.options.until > new Date()
   )
 
-  const [currentContext, setCurrentContext] = useState<HabitContext>(
-    getHabitContext(habits[0])
-  )
+  const [currentContext, setCurrentContext] = useState<
+    HabitContext | undefined
+  >(habits[0] && getHabitContext(habits[0]))
 
   function getHabitContext(habit: Habit): HabitContext {
     const filteredHabitEntries = habitEntries.filter(
@@ -123,7 +123,7 @@ function Dashboard({
                   key={habit.id}
                   className={cn(
                     "flex items-center rounded-lg",
-                    currentContext.habit?.id === habit.id
+                    currentContext?.habit.id === habit.id
                       ? "bg-primary text-white"
                       : ""
                   )}
@@ -133,7 +133,7 @@ function Dashboard({
                       <Button
                         variant="ghost"
                         className="w-full"
-                        disabled={currentContext.habit?.id === habit.id}
+                        disabled={currentContext?.habit.id === habit.id}
                         onClick={() =>
                           setCurrentContext(getHabitContext(habit))
                         }
@@ -169,7 +169,7 @@ function Dashboard({
             syncCalendarEvents={appleCalendarStore.syncCalendarEvents}
             trigger={<Button variant="outline">Create a new habit</Button>}
           />
-          {currentContext.habit && !isTrackedToday && (
+          {habits.length > 0 && !isTrackedToday && (
             <HabitTrackerFormDialog
               habits={habits.filter((habit) => {
                 const latestDateFromRuleset = getHabitContext(
@@ -184,7 +184,7 @@ function Dashboard({
         </div>
       </div>
 
-      {currentContext.habit && (
+      {!!currentContext && (
         <>
           <Separator orientation="vertical" />
           <div className="flex flex-col items-center gap-8 h-full w-full justify-between px-4">

@@ -2,19 +2,19 @@
 
 export type CreateHabitRequest = { habit_type: HabitType; event_ids: EventIds; title: string; question: string }
 
-export type Habit = { id: number; habit_type: HabitType; event_ids: EventIds; title: string; question: string }
+export type HabitEntry = { id: number; habit_id: number; completed: boolean; date: string }
+
+export type HabitType = "Daily" | "AppleCalendar"
 
 export type InsertHabitEntriesRequest = { data: InsertHabitEntryItem[] }
-
-export type AppleCalendarEvent = { id: string; name: string; start_date: string; recurrence: string }
-
-export type HabitEntry = { id: number; habit_id: number; completed: boolean; date: string }
 
 export type UpdateHabitRequest = { id: number; habit_type: HabitType; event_ids: EventIds; title: string; question: string }
 
 export type InsertHabitEntryItem = { habit_id: number; completed: boolean }
 
-export type EventIds = { values: string[] }
+export type AppleCalendarEvent = { id: string; name: string; start_date: string; recurrence: string }
 
-export type HabitType = "Daily" | "AppleCalendar"
+export type Habit = { id: number; habit_type: HabitType; event_ids: EventIds; title: string; question: string }
+
+export type EventIds = { values: string[] }
 
