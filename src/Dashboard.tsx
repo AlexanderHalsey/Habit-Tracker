@@ -27,6 +27,7 @@ import {
   endOfMonth,
   isSameMonth,
   isToday,
+  max,
   min,
   startOfDay,
   startOfMonth,
@@ -235,7 +236,10 @@ function Dashboard({
                   isSameMonth(entry.date, activeStartDate)
                 )}
                 interval={currentContext.rruleSet.between(
-                  startOfMonth(activeStartDate),
+                  max([
+                    startOfMonth(activeStartDate),
+                    currentContext.firstTrackedDay,
+                  ]),
                   min([endOfMonth(activeStartDate), endOfDay(new Date())]),
                   true
                 )}
